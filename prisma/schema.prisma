@@ -1,0 +1,169 @@
+// Prisma Schema para Sistema de Turnos de Consultorio Psicológico
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String                @id @default(cuid())
+  email        String                @unique
+  passwordHash String
+  name         String
+  role         String                @default("ADMIN")
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  profile      PsychologistProfile?
+}
+
+model PsychologistProfile {
+  id                       String   @id @default(cuid())
+  userId                   String   @unique
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName                 String   @default("Lic. Psicóloga")
+  license                  String   @default("M.N. 12345 / M.P. 67890")
+  specialty                String   @default("Psicología Clínica de Adultos")
+  bio                      String   @default("Atención psicológica profesional y confidencial, con enfoque cognitivo-conductual e integral.")
+  phone                    String   @default("+54 11 5555-5555")
+  email                    String   @default("consultorio@psicologia.com")
+  address                  String   @default("Av. Santa Fe 1234, Piso 4, CABA")
+  allowPresencial          Boolean  @default(true)
+  allowVirtual             Boolean  @default(true)
+  sessionPrice             Float    @default(18000)
+  sessionDuration          Int      @default(50) // En minutos
+  bufferMinutes            Int      @default(10) // Entre sesiones
+  minNoticeHours           Int      @default(4)  // Anticipación mínima
+  maxAdvanceDays           Int      @default(30) // Días futuros máximos
+  pendingExpirationMinutes Int      @default(120)// Tiempo para pagar y subir comprobante
+  bankAccountHolder        String   @default("Lic. Psicóloga")
+  bankName                 String   @default("Banco Santander")
+  bankCbu                  String   @default("0720000000000000000000")
+  bankAlias                String   @default("PSICO.TURNOS.CONSULTORIO")
+  paymentInstructions      String   @default("Realizá la transferencia del importe exacto dentro del tiempo límite y adjuntá tu comprobante en formato JPG, PNG o PDF.")
+  cancellationPolicy       String   @default("Los turnos pueden cancelarse o reprogramarse con un mínimo de 24 horas de anticipación.")
+  privacyNotice            String   @default("El consultorio garantiza la confidencialidad de los datos personales suministrados de acuerdo con la Ley N° 25.326 de Protección de Datos Personales.")
+  updatedAt                DateTime @updatedAt
+}
+
+model WeeklySchedule {
+  id             String   @id @default(cuid())
+  dayOfWeek      Int      // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+  isActive       Boolean  @default(true)
+  startTime      String   @default("09:00") // Formato 24h "HH:mm"
+  endTime        String   @default("18:00") // Formato 24h "HH:mm"
+  breakStartTime String?  // Pausa opcional e.g. "13:00"
+  breakEndTime   String?  // Pausa opcional e.g. "14:00"
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([dayOfWeek])
+}
+
+model ScheduleException {
+  id          String   @id @default(cuid())
+  dateString  String   @unique // Formato "YYYY-MM-DD" en hora de Argentina
+  isAvailable Boolean  @default(false) // false = no atiende (feriado/vacaciones), true = atención especial
+  startTime   String?  // Si isAvailable = true
+  endTime     String?  // Si isAvailable = true
+  reason      String   // e.g. "Feriado Nacional", "Vacaciones"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ScheduleBlock {
+  id        String   @id @default(cuid())
+  startTime DateTime // UTC
+  endTime   DateTime // UTC
+  reason    String
+  createdAt DateTime @default(now())
+
+  @@index([startTime, endTime])
+}
+
+model Patient {
+  id              String        @id @default(cuid())
+  fullName        String
+  email           String
+  phone           String
+  privacyAccepted Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  appointments    Appointment[]
+
+  @@index([email])
+}
+
+model Appointment {
+  id                 String               @id @default(cuid())
+  publicCode         String               @unique // e.g. "TRN-9X4A1B"
+  patientId          String
+  patient            Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  startTime          DateTime             // UTC
+  endTime            DateTime             // UTC
+  modality           String               // "PRESENCIAL" | "VIRTUAL"
+  status             String               @default("PENDIENTE_PAGO")
+  // "PENDIENTE_PAGO", "COMPROBANTE_ENVIADO", "PAGO_CONFIRMADO", "CONFIRMADA", "CANCELADA", "COMPLETADA", "AUSENTE"
+  price              Float
+  adminNotes         String?              // Notas administrativas no clínicas
+  cancellationReason String?
+  expiresAt          DateTime?            // Límite para abonar reserva pendiente
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime             @updatedAt
+  payment            Payment?
+  accessTokens       PatientAccessToken[]
+
+  @@index([startTime, endTime])
+  @@index([status])
+}
+
+model Payment {
+  id              String         @id @default(cuid())
+  appointmentId   String         @unique
+  appointment     Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  status          String         @default("PENDIENTE")
+  // "PENDIENTE", "COMPROBANTE_RECIBIDO", "APROBADO", "RECHAZADO", "REEMBOLSADO"
+  amount          Float
+  reviewedAt      DateTime?
+  rejectionReason String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  proofs          PaymentProof[]
+}
+
+model PaymentProof {
+  id               String   @id @default(cuid())
+  paymentId        String
+  payment          Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  storageKey       String   @unique // Nombre aleatorio seguro (UUID)
+  originalFilename String
+  mimeType         String   // "image/jpeg", "image/png", "image/webp", "application/pdf"
+  sizeBytes        Int
+  uploadedAt       DateTime @default(now())
+}
+
+model PatientAccessToken {
+  id            String      @id @default(cuid())
+  tokenHash     String      @unique // SHA-256 del token plano
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@index([appointmentId])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  action      String
+  entity      String
+  entityId    String?
+  performedBy String   // "ADMIN", "PATIENT", "SYSTEM"
+  ipHash      String?
+  details     String?  // JSON serializado
+  createdAt   DateTime @default(now())
+}
