@@ -33,6 +33,12 @@ export default function RootLayout({
 
             <nav className="flex items-center gap-3 sm:gap-6">
               <Link
+                href="/consultar-turno"
+                className="text-xs font-medium text-gray-600 transition hover:text-sage-800 sm:text-sm"
+              >
+                Consultar mi turno
+              </Link>
+              <Link
                 href="/reservar"
                 className="flex items-center gap-1.5 rounded-xl bg-sage-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-sage-700 active:scale-95"
               >
