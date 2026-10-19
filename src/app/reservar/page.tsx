@@ -46,7 +46,7 @@ export default function ReservarPage() {
   const [weekDaysData, setWeekDaysData] = useState<DayData[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedTime, setSelectedTime] = useState<string>("");
-  const [modality, setModality] = useState<"PRESENCIAL" | "VIRTUAL">("PRESENCIAL");
+  const [modality, setModality] = useState<"PRESENCIAL" | "VIRTUAL">("VIRTUAL");
 
   // Datos del perfil profesional cargados de la API
   const [profile, setProfile] = useState<{
@@ -290,67 +290,84 @@ export default function ReservarPage() {
           {/* Selector de Modalidad */}
           <div className="rounded-2xl border border-warm-200 bg-white p-5 shadow-xs">
             <label className="block text-sm font-semibold text-gray-900">
-              1. Elegí la modalidad de atención
+              1. Modalidad de atención
             </label>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <button
-                type="button"
-                onClick={() => setModality("PRESENCIAL")}
-                disabled={Boolean(profile && !profile.allowPresencial)}
-                className={`flex items-center gap-3 rounded-xl border p-4 text-left transition ${
-                  modality === "PRESENCIAL"
-                    ? "border-sage-600 bg-sage-50/70 ring-1 ring-sage-600"
-                    : "border-gray-200 hover:border-gray-300"
-                } ${profile && !profile.allowPresencial ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                    modality === "PRESENCIAL"
-                      ? "bg-sage-600 text-white"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <div>
-                  <span className="font-semibold text-gray-900 block text-sm">
-                    Atención Presencial
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    En consultorio particular
-                  </span>
-                </div>
-              </button>
 
-              <button
-                type="button"
-                onClick={() => setModality("VIRTUAL")}
-                disabled={Boolean(profile && !profile.allowVirtual)}
-                className={`flex items-center gap-3 rounded-xl border p-4 text-left transition ${
-                  modality === "VIRTUAL"
-                    ? "border-sage-600 bg-sage-50/70 ring-1 ring-sage-600"
-                    : "border-gray-200 hover:border-gray-300"
-                } ${profile && !profile.allowVirtual ? "opacity-50 cursor-not-allowed" : ""}`}
-              >
-                <div
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                    modality === "VIRTUAL"
-                      ? "bg-sage-600 text-white"
-                      : "bg-gray-100 text-gray-600"
-                  }`}
-                >
+            {profile && !profile.allowPresencial ? (
+              <div className="mt-3 flex items-center gap-3.5 rounded-xl border border-sage-600 bg-sage-50/70 p-4 ring-1 ring-sage-600">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sage-600 text-white">
                   <Video className="h-5 w-5" />
                 </div>
                 <div>
                   <span className="font-semibold text-gray-900 block text-sm">
-                    Atención Virtual
+                    Atención 100% Virtual (Videollamada Online)
                   </span>
-                  <span className="text-xs text-gray-500">
-                    Videollamada online
+                  <span className="text-xs text-gray-600">
+                    Las sesiones se llevan a cabo exclusivamente de forma online. Antes del turno recibirás el enlace para conectarte.
                   </span>
                 </div>
-              </button>
-            </div>
+              </div>
+            ) : (
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setModality("PRESENCIAL")}
+                  disabled={Boolean(profile && !profile.allowPresencial)}
+                  className={`flex items-center gap-3 rounded-xl border p-4 text-left transition ${
+                    modality === "PRESENCIAL"
+                      ? "border-sage-600 bg-sage-50/70 ring-1 ring-sage-600"
+                      : "border-gray-200 hover:border-gray-300"
+                  } ${profile && !profile.allowPresencial ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                      modality === "PRESENCIAL"
+                        ? "bg-sage-600 text-white"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900 block text-sm">
+                      Atención Presencial
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      En consultorio particular
+                    </span>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setModality("VIRTUAL")}
+                  disabled={Boolean(profile && !profile.allowVirtual)}
+                  className={`flex items-center gap-3 rounded-xl border p-4 text-left transition ${
+                    modality === "VIRTUAL"
+                      ? "border-sage-600 bg-sage-50/70 ring-1 ring-sage-600"
+                      : "border-gray-200 hover:border-gray-300"
+                  } ${profile && !profile.allowVirtual ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  <div
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                      modality === "VIRTUAL"
+                        ? "bg-sage-600 text-white"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    <Video className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-gray-900 block text-sm">
+                      Atención Virtual
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      Videollamada online
+                    </span>
+                  </div>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Navegador de Semanas y Calendario de Días */}

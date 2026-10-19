@@ -98,7 +98,7 @@ describe("Flujos Críticos Obligatorios del Sistema de Turnos", () => {
     const req1 = AppointmentService.createAppointment({
       dateStr: testDateStr,
       timeStr: targetSlot.time,
-      modality: "PRESENCIAL",
+      modality: "VIRTUAL",
       fullName: "Carlos Pérez",
       email: "carlos@test.com",
       phone: "+54 11 2222-3333",
@@ -148,7 +148,7 @@ describe("Flujos Críticos Obligatorios del Sistema de Turnos", () => {
       AppointmentService.createAppointment({
         dateStr: testDateStr,
         timeStr: freeSlot!.time,
-        modality: "PRESENCIAL",
+        modality: "VIRTUAL",
         fullName: "Roberto Díaz",
         email: "roberto@test.com",
         phone: "+54 11 5555-6666",
@@ -165,7 +165,7 @@ describe("Flujos Críticos Obligatorios del Sistema de Turnos", () => {
       AppointmentService.createAppointment({
         dateStr: pastDateStr,
         timeStr: "10:00",
-        modality: "PRESENCIAL",
+        modality: "VIRTUAL",
         fullName: "Lucía Fernández",
         email: "lucia@test.com",
         phone: "+54 11 7777-8888",
@@ -296,7 +296,7 @@ describe("Flujos Críticos Obligatorios del Sistema de Turnos", () => {
     const created = await AppointmentService.createAppointment({
       dateStr: testDateStr,
       timeStr: freeSlot!.time,
-      modality: "PRESENCIAL",
+      modality: "VIRTUAL",
       fullName: "Esteban Morales",
       email: "esteban@test.com",
       phone: "+54 11 1234-5678",
@@ -377,7 +377,7 @@ describe("Flujos Críticos Obligatorios del Sistema de Turnos", () => {
     const created = await AppointmentService.createAppointment({
       dateStr: testDateStr,
       timeStr: freeSlot!.time,
-      modality: "PRESENCIAL",
+      modality: "VIRTUAL",
       fullName: "Valeria Sosa",
       email: "valeria@test.com",
       phone: "+54 11 6789-0123",
@@ -418,5 +418,24 @@ describe("Flujos Críticos Obligatorios del Sistema de Turnos", () => {
       where: { id: created.appointmentId },
     });
     expect(appAfterApprove?.status).toBe("CONFIRMADA");
+  });
+
+  // Verificación adicional: Rechazo de modalidad presencial cuando está deshabilitada
+  it("Rechaza solicitudes de turnos presenciales cuando la modalidad presencial está deshabilitada", async () => {
+    const availability = await AvailabilityService.getSlotsForDate(testDateStr);
+    const freeSlot = availability.slots.find((s) => s.available);
+    expect(freeSlot).toBeDefined();
+
+    await expect(
+      AppointmentService.createAppointment({
+        dateStr: testDateStr,
+        timeStr: freeSlot!.time,
+        modality: "PRESENCIAL",
+        fullName: "Test Paciente",
+        email: "rechazo_presencial@test.com",
+        phone: "+54 11 0000-0000",
+        privacyAccepted: true,
+      })
+    ).rejects.toThrow(/la atención presencial no está habilitada/i);
   });
 });

@@ -32,7 +32,10 @@ async function main() {
   // Perfil profesional de la psicóloga
   await prisma.psychologistProfile.upsert({
     where: { userId: adminUser.id },
-    update: {},
+    update: {
+      allowPresencial: false,
+      allowVirtual: true,
+    },
     create: {
       userId: adminUser.id,
       fullName: "Lic. Mariana Gómez",
@@ -41,8 +44,8 @@ async function main() {
       bio: "Especialista en terapia cognitiva conductual (TCC) y mindfulness. Brindo un espacio de escucha cálido, profesional y libre de juicios para acompañarte en tu proceso personal.",
       phone: "+54 9 11 4050-6070",
       email: "consultas@licmarianagomez.com.ar",
-      address: "Av. Santa Fe 2450, Piso 3, Consultorio B, Recoleta, CABA",
-      allowPresencial: true,
+      address: "Atención Online / Videollamada",
+      allowPresencial: false,
       allowVirtual: true,
       sessionPrice: 22000,
       sessionDuration: 50,

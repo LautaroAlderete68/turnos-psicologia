@@ -67,7 +67,7 @@ export default function RootLayout({
               <div>
                 <p className="font-medium text-gray-700">Consultorio de Psicología Clínica</p>
                 <p className="mt-1 text-gray-500">
-                  Atención presencial en consultorio y sesiones virtuales.
+                  Atención psicológica profesional en sesiones virtuales (online).
                 </p>
               </div>
 
