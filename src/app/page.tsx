@@ -24,7 +24,7 @@ export default async function HomePage() {
     console.error("Error al obtener perfil del psicólogo:", error);
   }
 
-  const fullName = profile?.fullName || "Lic. en Psicología";
+  const fullName = profile?.fullName || "Lic. Marisa Ebhardt";
   const license = profile?.license || "Matrícula Profesional";
   const specialty = profile?.specialty || "Psicología Clínica";
   const bio =

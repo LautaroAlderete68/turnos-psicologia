@@ -8,7 +8,7 @@ async function main() {
 
   const adminEmail = process.env.INITIAL_ADMIN_EMAIL || "admin@consultorio.com";
   const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || "AdminSegura2026!";
-  const adminName = process.env.INITIAL_ADMIN_NAME || "Lic. Mariana Gómez";
+  const adminName = process.env.INITIAL_ADMIN_NAME || "Lic. Marisa Ebhardt";
 
   const passwordHash = await bcrypt.hash(adminPassword, 12);
 
@@ -38,12 +38,12 @@ async function main() {
     },
     create: {
       userId: adminUser.id,
-      fullName: "Lic. Mariana Gómez",
+      fullName: "Lic. Marisa Ebhardt",
       license: "M.N. 48.912 / M.P. 24.105",
       specialty: "Psicología Clínica de Adultos y Parejas",
       bio: "Especialista en terapia cognitiva conductual (TCC) y mindfulness. Brindo un espacio de escucha cálido, profesional y libre de juicios para acompañarte en tu proceso personal.",
       phone: "+54 9 11 4050-6070",
-      email: "consultas@licmarianagomez.com.ar",
+      email: "consultas@marisaebhardt.com",
       address: "Atención Online / Videollamada",
       allowPresencial: false,
       allowVirtual: true,
@@ -53,10 +53,10 @@ async function main() {
       minNoticeHours: 4,
       maxAdvanceDays: 30,
       pendingExpirationMinutes: 120,
-      bankAccountHolder: "Mariana Gómez",
+      bankAccountHolder: "Marisa Ebhardt",
       bankName: "Banco Santander Argentina",
       bankCbu: "0720123988000034567890",
-      bankAlias: "LIC.MARIANA.PSICO",
+      bankAlias: "MARISA.EBHARDT.PSICO",
       paymentInstructions: "Para asegurar tu turno, transferí el valor de la sesión al CBU o Alias indicado dentro de las 2 horas de haber reservado. Luego adjuntá el comprobante emitido por tu banco en esta plataforma.",
       cancellationPolicy: "Las cancelaciones o pedidos de reprogramación deben realizarse con al menos 24 horas de antelación. Pasado ese plazo, la sesión se considerará efectuada.",
       privacyNotice: "Toda la información suministrada se procesa con estricto secreto profesional y protección de datos personales conforme a la Ley Nacional N° 25.326.",
