@@ -34,7 +34,12 @@ export default async function TurnoPage({
     );
   }
 
-  const profile = await prisma.psychologistProfile.findFirst();
+  let profile = null;
+  try {
+    profile = await prisma.psychologistProfile.findFirst();
+  } catch (error) {
+    console.error("Error al obtener perfil en turno:", error);
+  }
 
   return (
     <PatientPortalClient

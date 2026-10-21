@@ -17,7 +17,12 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const profile = await prisma.psychologistProfile.findFirst();
+  let profile = null;
+  try {
+    profile = await prisma.psychologistProfile.findFirst();
+  } catch (error) {
+    console.error("Error al obtener perfil del psicólogo:", error);
+  }
 
   const fullName = profile?.fullName || "Lic. en Psicología";
   const license = profile?.license || "Matrícula Profesional";
@@ -228,3 +233,4 @@ export default async function HomePage() {
     </div>
   );
 }
+

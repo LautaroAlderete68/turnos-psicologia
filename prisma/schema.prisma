@@ -1,11 +1,14 @@
-// Prisma Schema para Sistema de Turnos de Consultorio Psicológico
+// Prisma Schema para Producción con PostgreSQL
+// Para usar este esquema en producción:
+// 1. Establecer en .env: DATABASE_URL="postgresql://..."
+// 2. Ejecutar: npx prisma db push --schema=prisma/schema.postgresql.prisma
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -34,11 +37,11 @@ model PsychologistProfile {
   allowPresencial          Boolean  @default(false)
   allowVirtual             Boolean  @default(true)
   sessionPrice             Float    @default(18000)
-  sessionDuration          Int      @default(50) // En minutos
-  bufferMinutes            Int      @default(10) // Entre sesiones
-  minNoticeHours           Int      @default(4)  // Anticipación mínima
-  maxAdvanceDays           Int      @default(30) // Días futuros máximos
-  pendingExpirationMinutes Int      @default(120)// Tiempo para pagar y subir comprobante
+  sessionDuration          Int      @default(50)
+  bufferMinutes            Int      @default(10)
+  minNoticeHours           Int      @default(4)
+  maxAdvanceDays           Int      @default(30)
+  pendingExpirationMinutes Int      @default(120)
   bankAccountHolder        String   @default("Lic. Psicóloga")
   bankName                 String   @default("Banco Santander")
   bankCbu                  String   @default("0720000000000000000000")
@@ -51,33 +54,31 @@ model PsychologistProfile {
 
 model WeeklySchedule {
   id             String   @id @default(cuid())
-  dayOfWeek      Int      // 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+  dayOfWeek      Int      @unique
   isActive       Boolean  @default(true)
-  startTime      String   @default("09:00") // Formato 24h "HH:mm"
-  endTime        String   @default("18:00") // Formato 24h "HH:mm"
-  breakStartTime String?  // Pausa opcional e.g. "13:00"
-  breakEndTime   String?  // Pausa opcional e.g. "14:00"
+  startTime      String   @default("09:00")
+  endTime        String   @default("18:00")
+  breakStartTime String?
+  breakEndTime   String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
-
-  @@unique([dayOfWeek])
 }
 
 model ScheduleException {
   id          String   @id @default(cuid())
-  dateString  String   @unique // Formato "YYYY-MM-DD" en hora de Argentina
-  isAvailable Boolean  @default(false) // false = no atiende (feriado/vacaciones), true = atención especial
-  startTime   String?  // Si isAvailable = true
-  endTime     String?  // Si isAvailable = true
-  reason      String   // e.g. "Feriado Nacional", "Vacaciones"
+  dateString  String   @unique
+  isAvailable Boolean  @default(false)
+  startTime   String?
+  endTime     String?
+  reason      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
 
 model ScheduleBlock {
   id        String   @id @default(cuid())
-  startTime DateTime // UTC
-  endTime   DateTime // UTC
+  startTime DateTime
+  endTime   DateTime
   reason    String
   createdAt DateTime @default(now())
 
@@ -99,18 +100,17 @@ model Patient {
 
 model Appointment {
   id                 String               @id @default(cuid())
-  publicCode         String               @unique // e.g. "TRN-9X4A1B"
+  publicCode         String               @unique
   patientId          String
   patient            Patient              @relation(fields: [patientId], references: [id], onDelete: Cascade)
-  startTime          DateTime             // UTC
-  endTime            DateTime             // UTC
-  modality           String               // "PRESENCIAL" | "VIRTUAL"
+  startTime          DateTime
+  endTime            DateTime
+  modality           String
   status             String               @default("PENDIENTE_PAGO")
-  // "PENDIENTE_PAGO", "COMPROBANTE_ENVIADO", "PAGO_CONFIRMADO", "CONFIRMADA", "CANCELADA", "COMPLETADA", "AUSENTE"
   price              Float
-  adminNotes         String?              // Notas administrativas no clínicas
+  adminNotes         String?
   cancellationReason String?
-  expiresAt          DateTime?            // Límite para abonar reserva pendiente
+  expiresAt          DateTime?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   payment            Payment?
@@ -125,7 +125,6 @@ model Payment {
   appointmentId   String         @unique
   appointment     Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   status          String         @default("PENDIENTE")
-  // "PENDIENTE", "COMPROBANTE_RECIBIDO", "APROBADO", "RECHAZADO", "REEMBOLSADO"
   amount          Float
   reviewedAt      DateTime?
   rejectionReason String?
@@ -138,16 +137,16 @@ model PaymentProof {
   id               String   @id @default(cuid())
   paymentId        String
   payment          Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  storageKey       String   @unique // Nombre aleatorio seguro (UUID)
+  storageKey       String   @unique
   originalFilename String
-  mimeType         String   // "image/jpeg", "image/png", "image/webp", "application/pdf"
+  mimeType         String
   sizeBytes        Int
   uploadedAt       DateTime @default(now())
 }
 
 model PatientAccessToken {
   id            String      @id @default(cuid())
-  tokenHash     String      @unique // SHA-256 del token plano
+  tokenHash     String      @unique
   appointmentId String
   appointment   Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   expiresAt     DateTime
@@ -162,8 +161,8 @@ model AuditLog {
   action      String
   entity      String
   entityId    String?
-  performedBy String   // "ADMIN", "PATIENT", "SYSTEM"
+  performedBy String
   ipHash      String?
-  details     String?  // JSON serializado
+  details     String?
   createdAt   DateTime @default(now())
 }

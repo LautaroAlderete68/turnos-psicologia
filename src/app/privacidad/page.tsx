@@ -5,7 +5,12 @@ import prisma from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function PrivacidadPage() {
-  const profile = await prisma.psychologistProfile.findFirst();
+  let profile = null;
+  try {
+    profile = await prisma.psychologistProfile.findFirst();
+  } catch (error) {
+    console.error("Error al obtener perfil en privacidad:", error);
+  }
 
   const customNotice =
     profile?.privacyNotice ||
