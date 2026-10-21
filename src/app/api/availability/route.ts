@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AvailabilityService } from "@/lib/services/availability.service";
 import prisma from "@/lib/prisma";
+import { SESSION_PRICE } from "@/lib/constants";
 
 export async function GET(req: NextRequest) {
   try {
@@ -11,7 +12,6 @@ export async function GET(req: NextRequest) {
     // También retornar datos básicos del perfil profesional (honorario, duración, modalidades)
     const profile = await prisma.psychologistProfile.findFirst({
       select: {
-        sessionPrice: true,
         sessionDuration: true,
         allowPresencial: true,
         allowVirtual: true,
@@ -23,7 +23,11 @@ export async function GET(req: NextRequest) {
     if (datesParam) {
       const dates = datesParam.split(",").map((d) => d.trim());
       const data = await AvailabilityService.getSlotsForRange(dates);
-      return NextResponse.json({ success: true, profile, days: data });
+      return NextResponse.json({
+        success: true,
+        profile: profile ? { ...profile, sessionPrice: SESSION_PRICE } : profile,
+        days: data,
+      });
     }
 
     if (!dateStr) {
@@ -34,7 +38,11 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await AvailabilityService.getSlotsForDate(dateStr);
-    return NextResponse.json({ success: true, profile, day: data });
+    return NextResponse.json({
+      success: true,
+      profile: profile ? { ...profile, sessionPrice: SESSION_PRICE } : profile,
+      day: data,
+    });
   } catch (error: any) {
     console.error("Error en /api/availability:", error);
     return NextResponse.json(
