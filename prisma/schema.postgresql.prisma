@@ -36,7 +36,7 @@ model PsychologistProfile {
   address                  String   @default("Atención Online / Videollamada")
   allowPresencial          Boolean  @default(false)
   allowVirtual             Boolean  @default(true)
-  sessionPrice             Float    @default(18000)
+  sessionPrice             Float    @default(30000)
   sessionDuration          Int      @default(50)
   bufferMinutes            Int      @default(10)
   minNoticeHours           Int      @default(4)

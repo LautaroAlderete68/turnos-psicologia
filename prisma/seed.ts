@@ -47,7 +47,7 @@ async function main() {
       address: "Atención Online / Videollamada",
       allowPresencial: false,
       allowVirtual: true,
-      sessionPrice: 22000,
+      sessionPrice: 30000,
       sessionDuration: 50,
       bufferMinutes: 10,
       minNoticeHours: 4,
