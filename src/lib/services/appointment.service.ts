@@ -3,7 +3,7 @@ import crypto from "crypto";
 import prisma from "../prisma";
 import { argentinaTimeToUtc, isPastUtc, formatDateTimeArgentina } from "../timezone";
 import { hashToken, generateRawToken } from "../patient-auth";
-import { SESSION_PRICE } from "../constants";
+import { SESSION_DURATION_MINUTES, SESSION_PRICE } from "../constants";
 
 export class SlotUnavailableError extends Error {
   constructor(message = "El horario seleccionado ya no se encuentra disponible.") {
@@ -66,7 +66,7 @@ export class AppointmentService {
 
     const now = new Date();
     const startTimeUtc = argentinaTimeToUtc(input.dateStr, input.timeStr);
-    const endTimeUtc = addMinutes(startTimeUtc, profile.sessionDuration);
+      const endTimeUtc = addMinutes(startTimeUtc, SESSION_DURATION_MINUTES);
 
     // Validación: No permitir turnos en el pasado
     if (isPastUtc(startTimeUtc)) {

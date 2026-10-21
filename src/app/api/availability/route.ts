@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AvailabilityService } from "@/lib/services/availability.service";
 import prisma from "@/lib/prisma";
-import { SESSION_PRICE } from "@/lib/constants";
+import { SESSION_DURATION_MINUTES, SESSION_PRICE } from "@/lib/constants";
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,7 +25,9 @@ export async function GET(req: NextRequest) {
       const data = await AvailabilityService.getSlotsForRange(dates);
       return NextResponse.json({
         success: true,
-        profile: profile ? { ...profile, sessionPrice: SESSION_PRICE } : profile,
+        profile: profile
+          ? { ...profile, sessionPrice: SESSION_PRICE, sessionDuration: SESSION_DURATION_MINUTES }
+          : profile,
         days: data,
       });
     }
@@ -40,7 +42,9 @@ export async function GET(req: NextRequest) {
     const data = await AvailabilityService.getSlotsForDate(dateStr);
     return NextResponse.json({
       success: true,
-      profile: profile ? { ...profile, sessionPrice: SESSION_PRICE } : profile,
+      profile: profile
+        ? { ...profile, sessionPrice: SESSION_PRICE, sessionDuration: SESSION_DURATION_MINUTES }
+        : profile,
       day: data,
     });
   } catch (error: any) {

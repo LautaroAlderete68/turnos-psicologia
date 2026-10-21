@@ -49,7 +49,7 @@ async function main() {
       allowPresencial: false,
       allowVirtual: true,
       sessionPrice: 30000,
-      sessionDuration: 50,
+      sessionDuration: 60,
       bufferMinutes: 10,
       minNoticeHours: 4,
       maxAdvanceDays: 30,

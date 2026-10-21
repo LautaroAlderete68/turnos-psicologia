@@ -234,7 +234,7 @@ export default function AdminConfigClient({
             <input
               type="number"
               required
-              value={profile.sessionDuration || 50}
+              value={profile.sessionDuration || 60}
               onChange={(e) => handleProfileChange("sessionDuration", e.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-sage-600"
             />
