@@ -35,6 +35,7 @@ async function main() {
     update: {
       allowPresencial: false,
       allowVirtual: true,
+      sessionPrice: 30000,
     },
     create: {
       userId: adminUser.id,
