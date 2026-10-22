@@ -13,7 +13,6 @@ import {
   FileText,
 } from "lucide-react";
 import prisma from "@/lib/prisma";
-import { SESSION_DURATION_MINUTES, SESSION_PRICE } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -34,8 +33,8 @@ export default async function HomePage() {
   const address = profile?.address || "Consultorio profesional";
   const phone = profile?.phone || "Consultar por mensaje";
   const email = profile?.email || "contactopsicotp@gmail.com";
-  const price = SESSION_PRICE;
-  const duration = SESSION_DURATION_MINUTES;
+  const price = profile?.sessionPrice ?? 0;
+  const duration = profile?.sessionDuration ?? 60;
   const allowPresencial = profile?.allowPresencial ?? true;
   const allowVirtual = profile?.allowVirtual ?? true;
   const bankAlias = profile?.bankAlias || "CONSULTORIO.PSICO";

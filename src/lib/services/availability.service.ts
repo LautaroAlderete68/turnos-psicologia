@@ -1,6 +1,5 @@
 import { addMinutes, addHours, isAfter, isBefore, parse } from "date-fns";
 import prisma from "../prisma";
-import { SESSION_DURATION_MINUTES } from "../constants";
 import {
   argentinaTimeToUtc,
   getArgentinaDayOfWeek,
@@ -131,7 +130,7 @@ export class AvailabilityService {
     // 3. Generar franjas candidatas
     const startMins = timeToMinutes(startTimeStr);
     const endMins = timeToMinutes(endTimeStr);
-    const slotDuration = SESSION_DURATION_MINUTES;
+    const slotDuration = profile.sessionDuration;
     const buffer = profile.bufferMinutes;
     const step = slotDuration + buffer;
 

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AvailabilityService } from "@/lib/services/availability.service";
 import prisma from "@/lib/prisma";
-import { SESSION_DURATION_MINUTES, SESSION_PRICE } from "@/lib/constants";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,6 +12,7 @@ export async function GET(req: NextRequest) {
     const profile = await prisma.psychologistProfile.findFirst({
       select: {
         sessionDuration: true,
+        sessionPrice: true,
         allowPresencial: true,
         allowVirtual: true,
         fullName: true,
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({
         success: true,
         profile: profile
-          ? { ...profile, sessionPrice: SESSION_PRICE, sessionDuration: SESSION_DURATION_MINUTES }
+          ? profile
           : profile,
         days: data,
       });
@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       success: true,
       profile: profile
-        ? { ...profile, sessionPrice: SESSION_PRICE, sessionDuration: SESSION_DURATION_MINUTES }
+        ? profile
         : profile,
       day: data,
     });
