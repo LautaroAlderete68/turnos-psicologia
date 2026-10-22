@@ -53,7 +53,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-sage-50 to-warm-100 p-8 text-center sm:p-14">
         <div className="mx-auto max-w-2xl">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-sage-200/70 px-3 py-1 text-xs font-semibold text-sage-800">
-            <ShieldCheck className="h-4 w-4" />
+            <ShieldCheck className="h-4 w-4 text-pink-600" />
             Atención Profesional y Confidencial
           </span>
 
@@ -81,7 +81,7 @@ export default async function HomePage() {
             <div className="text-center">
               <span className="text-xs uppercase tracking-wider text-gray-500">Duración</span>
               <p className="flex items-center justify-center gap-1 text-lg font-semibold text-gray-800 sm:text-xl">
-                <Clock className="h-4 w-4 text-sage-600" />
+                <Clock className="h-4 w-4 text-pink-600" />
                 {duration} min
               </p>
             </div>
@@ -91,13 +91,13 @@ export default async function HomePage() {
               <div className="flex items-center justify-center gap-2 text-sm font-medium text-gray-800">
                 {allowPresencial && (
                   <span className="flex items-center gap-0.5 text-xs text-sage-800">
-                    <MapPin className="h-3.5 w-3.5 text-sage-600" /> Presencial
+                    <MapPin className="h-3.5 w-3.5 text-pink-600" /> Presencial
                   </span>
                 )}
                 {allowPresencial && allowVirtual && <span>•</span>}
                 {allowVirtual && (
                   <span className="flex items-center gap-0.5 text-xs text-sage-800">
-                    <Video className="h-3.5 w-3.5 text-sage-600" /> Virtual
+                    <Video className="h-3.5 w-3.5 text-pink-600" /> Virtual
                   </span>
                 )}
               </div>
@@ -109,9 +109,9 @@ export default async function HomePage() {
               href="/reservar"
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-violet-800 hover:shadow-lg active:scale-98 sm:w-auto"
             >
-              <Calendar className="h-5 w-5" />
+              <Calendar className="h-5 w-5 text-pink-200" />
               <span>Reservar un turno</span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4 text-pink-200" />
             </Link>
           </div>
         </div>
@@ -130,7 +130,7 @@ export default async function HomePage() {
 
         <div className="mt-8 grid gap-6 sm:grid-cols-3">
           <div className="rounded-2xl border border-warm-200 bg-white p-6 shadow-xs">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-100 font-bold text-sage-800">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-100 font-bold text-pink-700">
               1
             </div>
             <h3 className="mt-4 font-semibold text-gray-900">Elegí tu fecha y horario</h3>
@@ -140,7 +140,7 @@ export default async function HomePage() {
           </div>
 
           <div className="rounded-2xl border border-warm-200 bg-white p-6 shadow-xs">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-100 font-bold text-sage-800">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-100 font-bold text-pink-700">
               2
             </div>
             <h3 className="mt-4 font-semibold text-gray-900">Ingresá tus datos de contacto</h3>
@@ -150,7 +150,7 @@ export default async function HomePage() {
           </div>
 
           <div className="rounded-2xl border border-warm-200 bg-white p-6 shadow-xs">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-100 font-bold text-sage-800">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-pink-100 font-bold text-pink-700">
               3
             </div>
             <h3 className="mt-4 font-semibold text-gray-900">Transferí y adjuntá comprobante</h3>
@@ -166,7 +166,7 @@ export default async function HomePage() {
         {/* Medios de Pago */}
         <div className="rounded-2xl border border-warm-200 bg-white p-6 sm:p-8">
           <div className="flex items-center gap-2 text-sage-800">
-            <CreditCard className="h-5 w-5" />
+            <CreditCard className="h-5 w-5 text-pink-600" />
             <h3 className="text-lg font-bold">Medios de Pago e Instrucciones</h3>
           </div>
           <p className="mt-3 text-sm text-gray-600">{paymentInstructions}</p>
@@ -193,7 +193,7 @@ export default async function HomePage() {
         <div className="flex flex-col justify-between rounded-2xl border border-warm-200 bg-white p-6 sm:p-8">
           <div>
             <div className="flex items-center gap-2 text-sage-800">
-              <CheckCircle2 className="h-5 w-5" />
+              <CheckCircle2 className="h-5 w-5 text-pink-600" />
               <h3 className="text-lg font-bold">Políticas del Consultorio</h3>
             </div>
             <p className="mt-3 text-sm text-gray-600">{cancellationPolicy}</p>
@@ -204,15 +204,15 @@ export default async function HomePage() {
               </h4>
               <ul className="mt-3 space-y-2 text-sm text-gray-700">
                 <li className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-sage-600" />
+                  <MapPin className="h-4 w-4 text-pink-600" />
                   <span>{address}</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-sage-600" />
+                  <Phone className="h-4 w-4 text-pink-600" />
                   <span>{phone}</span>
                 </li>
                 <li className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-sage-600" />
+                  <Mail className="h-4 w-4 text-pink-600" />
                   <span>{email}</span>
                 </li>
               </ul>
@@ -224,7 +224,7 @@ export default async function HomePage() {
               href="/privacidad"
               className="inline-flex items-center gap-1.5 text-xs text-sage-700 hover:text-sage-900 hover:underline"
             >
-              <FileText className="h-3.5 w-3.5" />
+              <FileText className="h-3.5 w-3.5 text-pink-600" />
               <span>Consultar aviso de privacidad y protección de datos</span>
             </Link>
           </div>

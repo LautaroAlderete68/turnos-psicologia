@@ -20,8 +20,8 @@ export default function RootLayout({
         <header className="sticky top-0 z-30 border-b border-warm-200 bg-[#FBFBF9]/95 backdrop-blur-md">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
             <Link href="/" className="flex items-center gap-2 text-sage-800 transition hover:text-sage-900">
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-sage-100 text-sage-700">
-                <HeartHandshake className="h-5 w-5" />
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-pink-100 text-pink-700">
+                <HeartHandshake className="h-5 w-5 text-pink-600" />
               </span>
               <div>
                 <span className="block text-sm font-semibold tracking-tight text-sage-900 sm:text-base">
@@ -42,7 +42,7 @@ export default function RootLayout({
                 href="/reservar"
                 className="flex items-center gap-1.5 rounded-xl bg-violet-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-violet-800 active:scale-95"
               >
-                <Calendar className="h-4 w-4" />
+                <Calendar className="h-4 w-4 text-pink-200" />
                 <span>Reservar turno</span>
               </Link>
               <Link
@@ -50,7 +50,7 @@ export default function RootLayout({
                 className="flex items-center gap-1 text-xs font-medium text-gray-500 transition hover:text-sage-800 sm:text-sm"
                 title="Acceso exclusivo psicóloga"
               >
-                <User className="h-4 w-4" />
+                <User className="h-4 w-4 text-pink-600" />
                 <span className="hidden sm:inline">Panel profesional</span>
               </Link>
             </nav>
