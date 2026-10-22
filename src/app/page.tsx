@@ -108,7 +108,7 @@ export default async function HomePage() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/reservar"
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-sage-600 px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-sage-700 hover:shadow-lg active:scale-98 sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 py-3.5 text-base font-semibold text-white shadow-md transition hover:bg-violet-800 hover:shadow-lg active:scale-98 sm:w-auto"
             >
               <Calendar className="h-5 w-5" />
               <span>Reservar un turno</span>

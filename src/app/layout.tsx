@@ -40,7 +40,7 @@ export default function RootLayout({
               </Link>
               <Link
                 href="/reservar"
-                className="flex items-center gap-1.5 rounded-xl bg-sage-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-sage-700 active:scale-95"
+                className="flex items-center gap-1.5 rounded-xl bg-violet-700 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-violet-800 active:scale-95"
               >
                 <Calendar className="h-4 w-4" />
                 <span>Reservar turno</span>
