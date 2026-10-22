@@ -109,7 +109,7 @@ export default function AdminConfigClient({
             </>
           ) : successMessage ? (
             <>
-              <Check className="h-4 w-4 text-green-300" />
+              <Check className="h-4 w-4 text-rose-300" />
               <span>¡Guardado!</span>
             </>
           ) : (

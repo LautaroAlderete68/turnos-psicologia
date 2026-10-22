@@ -95,8 +95,8 @@ export default function ConsultarTurnoPage() {
         )}
 
         {emailSentMessage && (
-          <div className="mt-6 flex items-start gap-2 rounded-xl bg-green-50 p-4 text-xs text-green-900 border border-green-200">
-            <CheckCircle2 className="h-4 w-4 shrink-0 text-green-600" />
+          <div className="mt-6 flex items-start gap-2 rounded-xl bg-rose-50 p-4 text-xs text-rose-900 border border-rose-200">
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-rose-600" />
             <span>{emailSentMessage}</span>
           </div>
         )}

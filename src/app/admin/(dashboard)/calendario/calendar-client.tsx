@@ -236,9 +236,9 @@ export default function AdminCalendarClient({
                     onClick={() => setSelectedApp(app)}
                     className={`w-full text-left rounded-xl border p-2 text-xs transition shadow-2xs hover:shadow-sm ${
                       app.status === "CONFIRMADA"
-                        ? "border-green-200 bg-green-50/80 text-green-950"
+                        ? "border-rose-200 bg-rose-50/80 text-rose-950"
                         : app.status === "COMPROBANTE_ENVIADO"
-                        ? "border-blue-200 bg-blue-50/80 text-blue-950"
+                        ? "border-rose-200 bg-rose-50/80 text-rose-950"
                         : app.status === "CANCELADA"
                         ? "border-gray-200 bg-gray-50 text-gray-400 line-through"
                         : "border-amber-200 bg-amber-50/80 text-amber-950"

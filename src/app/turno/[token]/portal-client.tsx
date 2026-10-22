@@ -183,15 +183,15 @@ export default function PatientPortalClient({
   const getReservationBadge = (status: string) => {
     switch (status) {
       case "CONFIRMADA":
-        return <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">Turno Confirmado</span>;
+        return <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">Turno Confirmado</span>;
       case "COMPROBANTE_ENVIADO":
-        return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">Comprobante en Revisión</span>;
+        return <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">Comprobante en Revisión</span>;
       case "PENDIENTE_PAGO":
         return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Pendiente de Pago</span>;
       case "CANCELADA":
         return <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">Cancelado</span>;
       case "COMPLETADA":
-        return <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-800">Completado</span>;
+        return <span className="rounded-full bg-rose-200 px-3 py-1 text-xs font-semibold text-rose-900">Completado</span>;
       case "AUSENTE":
         return <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">Ausente</span>;
       default:
@@ -202,9 +202,9 @@ export default function PatientPortalClient({
   const getPaymentBadge = (status: string) => {
     switch (status) {
       case "APROBADO":
-        return <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">Pago Aprobado</span>;
+        return <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">Pago Aprobado</span>;
       case "COMPROBANTE_RECIBIDO":
-        return <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">Comprobante Recibido</span>;
+        return <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">Comprobante Recibido</span>;
       case "PENDIENTE":
         return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Pago Pendiente</span>;
       case "RECHAZADO":
@@ -338,7 +338,7 @@ export default function PatientPortalClient({
                   onClick={() => copyToClipboard(profile.bankAlias, "alias")}
                   className="flex items-center gap-1 text-[11px] font-semibold text-sage-700 hover:text-sage-900"
                 >
-                  {copiedAlias ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+                  {copiedAlias ? <Check className="h-3 w-3 text-rose-600" /> : <Copy className="h-3 w-3" />}
                   <span>{copiedAlias ? "Copiado" : "Copiar"}</span>
                 </button>
               </div>
@@ -353,7 +353,7 @@ export default function PatientPortalClient({
                   onClick={() => copyToClipboard(profile.bankCbu, "cbu")}
                   className="flex items-center gap-1 text-[11px] font-semibold text-sage-700 hover:text-sage-900"
                 >
-                  {copiedCbu ? <Check className="h-3 w-3 text-green-600" /> : <Copy className="h-3 w-3" />}
+                  {copiedCbu ? <Check className="h-3 w-3 text-rose-600" /> : <Copy className="h-3 w-3" />}
                   <span>{copiedCbu ? "Copiado" : "Copiar"}</span>
                 </button>
               </div>
@@ -381,8 +381,8 @@ export default function PatientPortalClient({
             )}
 
             {uploadSuccess && (
-              <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-green-50 p-3 text-xs text-green-800 border border-green-200">
-                <FileCheck className="h-4 w-4 shrink-0 text-green-600" />
+              <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-rose-50 p-3 text-xs text-rose-800 border border-rose-200">
+                <FileCheck className="h-4 w-4 shrink-0 text-rose-600" />
                 <span>¡Comprobante subido con éxito! Está en proceso de revisión.</span>
               </div>
             )}

@@ -131,14 +131,14 @@ export default async function AdminDashboardOverviewPage() {
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               Comprobantes Pendientes
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100 text-blue-800">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 text-rose-800">
               <CreditCard className="h-5 w-5" />
             </div>
           </div>
-          <p className="mt-3 text-3xl font-bold text-blue-900">{pendingProofsCount}</p>
+          <p className="mt-3 text-3xl font-bold text-rose-900">{pendingProofsCount}</p>
           <Link
             href="/admin/pagos"
-            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-rose-600 hover:underline"
           >
             <span>Revisar bandeja</span>
             <ArrowRight className="h-3 w-3" />
@@ -165,11 +165,11 @@ export default async function AdminDashboardOverviewPage() {
             <span className="text-xs font-semibold uppercase tracking-wider text-gray-500">
               Cobranzas del Mes
             </span>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-green-100 text-green-800">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-100 text-rose-800">
               <TrendingUp className="h-5 w-5" />
             </div>
           </div>
-          <p className="mt-3 text-2xl font-bold text-green-900 sm:text-3xl">
+          <p className="mt-3 text-2xl font-bold text-rose-900 sm:text-3xl">
             ${totalRevenue.toLocaleString("es-AR")}
           </p>
           <span className="mt-1 block text-xs text-gray-400">
@@ -217,9 +217,9 @@ export default async function AdminDashboardOverviewPage() {
                     <span
                       className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                         app.status === "CONFIRMADA"
-                          ? "bg-green-100 text-green-800"
+                          ? "bg-rose-100 text-rose-800"
                           : app.status === "COMPROBANTE_ENVIADO"
-                          ? "bg-blue-100 text-blue-800"
+                          ? "bg-rose-50 text-rose-700"
                           : "bg-amber-100 text-amber-800"
                       }`}
                     >
@@ -325,9 +325,9 @@ export default async function AdminDashboardOverviewPage() {
                       <span
                         className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                           app.status === "CONFIRMADA"
-                            ? "bg-green-100 text-green-800"
+                            ? "bg-rose-100 text-rose-800"
                             : app.status === "COMPROBANTE_ENVIADO"
-                            ? "bg-blue-100 text-blue-800"
+                            ? "bg-rose-50 text-rose-700"
                             : "bg-amber-100 text-amber-800"
                         }`}
                       >

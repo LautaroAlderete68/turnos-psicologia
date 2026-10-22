@@ -144,7 +144,7 @@ export default function AdminPaymentsClient({
       <div className="rounded-2xl border border-warm-200 bg-white p-6 shadow-xs">
         <div className="flex items-center justify-between border-b border-warm-200 pb-4">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-100 text-blue-800 font-bold text-xs">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-rose-100 text-rose-800 font-bold text-xs">
               {pendingPayments.length}
             </span>
             <h2 className="text-base font-bold text-gray-900">
@@ -213,7 +213,7 @@ export default function AdminPaymentsClient({
                       type="button"
                       disabled={isProcessing}
                       onClick={() => handleApprove(payment.id)}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-green-600 py-2 text-xs font-bold text-white shadow-xs hover:bg-green-700 disabled:bg-gray-400"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-700 disabled:bg-gray-400"
                     >
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       <span>Aprobar Pago</span>
@@ -290,9 +290,9 @@ export default function AdminPaymentsClient({
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
                           p.status === "APROBADO"
-                            ? "bg-green-100 text-green-800"
+                            ? "bg-rose-100 text-rose-800"
                             : p.status === "COMPROBANTE_RECIBIDO"
-                            ? "bg-blue-100 text-blue-800"
+                            ? "bg-rose-50 text-rose-700"
                             : p.status === "RECHAZADO"
                             ? "bg-red-100 text-red-800"
                             : "bg-amber-100 text-amber-800"

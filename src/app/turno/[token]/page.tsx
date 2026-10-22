@@ -25,7 +25,7 @@ export default async function TurnoPage({
           </p>
           <a
             href="/reservar"
-            className="mt-6 inline-block rounded-xl bg-violet-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-800"
+            className="mt-6 inline-block rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700"
           >
             Solicitar un nuevo turno
           </a>

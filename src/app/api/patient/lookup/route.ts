@@ -88,11 +88,11 @@ export async function POST(req: NextRequest) {
         subject: `Enlace de acceso a tus turnos - Consultorio Psicológico`,
         html: `
           <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
-            <h2 style="color: #4F6D5D;">Acceso a tu turno</h2>
+            <h2 style="color: #BE123C;">Acceso a tu turno</h2>
             <p>Hola <strong>${patient.fullName}</strong>,</p>
             <p>Recibimos tu solicitud para acceder a tu reserva para el día <strong>${formatDateTimeArgentina(latestApp.startTime)} hs</strong> (Código: ${latestApp.publicCode}).</p>
             <p style="text-align: center; margin: 28px 0;">
-              <a href="${appUrl}/turno/${rawToken}" style="background-color: #588269; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ver mi turno</a>
+              <a href="${appUrl}/turno/${rawToken}" style="background-color: #E11D48; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ver mi turno</a>
             </p>
             <p style="font-size: 13px; color: #718096;">Si no solicitaste este enlace, podés desestimar este mensaje.</p>
           </div>

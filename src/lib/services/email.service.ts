@@ -77,7 +77,7 @@ export class EmailService {
     const subject = `Reserva recibida - Código ${data.publicCode}`;
     const html = `
       <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
-        <h2 style="color: #4F6D5D;">Tu reserva fue recibida con éxito</h2>
+        <h2 style="color: #BE123C;">Tu reserva fue recibida con éxito</h2>
         <p>Hola <strong>${data.patientName}</strong>,</p>
         <p>Registramos tu solicitud de turno para el día <strong>${data.dateTimeFormatted}</strong> (${data.modality}).</p>
         <div style="background-color: #F7FAFC; padding: 16px; border-radius: 6px; margin: 16px 0;">
@@ -86,7 +86,7 @@ export class EmailService {
         </div>
         <p>Para asegurar tu lugar, por favor completá la transferencia bancaria y adjuntá tu comprobante a través del siguiente enlace seguro:</p>
         <p style="text-align: center; margin: 28px 0;">
-          <a href="${magicLink}" style="background-color: #588269; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ver mi reserva y adjuntar comprobante</a>
+          <a href="${magicLink}" style="background-color: #E11D48; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ver mi reserva y adjuntar comprobante</a>
         </p>
         <p style="font-size: 13px; color: #718096;">Este enlace es personal y confidencial. No lo compartas con terceros.</p>
       </div>
@@ -101,7 +101,7 @@ export class EmailService {
     const subject = `Comprobante recibido - Turno ${data.publicCode}`;
     const html = `
       <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px;">
-        <h2 style="color: #4F6D5D;">Comprobante en revisión</h2>
+        <h2 style="color: #BE123C;">Comprobante en revisión</h2>
         <p>Hola <strong>${data.patientName}</strong>,</p>
         <p>Recibimos tu comprobante de pago para el turno <strong>${data.publicCode}</strong>. La profesional lo revisará a la brevedad y te notificaremos la confirmación definitiva.</p>
       </div>
@@ -124,7 +124,7 @@ export class EmailService {
     const subject = `Turno confirmado - Código ${data.publicCode}`;
     const html = `
       <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px;">
-        <h2 style="color: #4F6D5D;">¡Tu turno está confirmado!</h2>
+        <h2 style="color: #BE123C;">¡Tu turno está confirmado!</h2>
         <p>Hola <strong>${data.patientName}</strong>,</p>
         <p>El pago de tu sesión ha sido aprobado. Te esperamos el día <strong>${data.dateTimeFormatted}</strong> (${data.modality}).</p>
         <p>Podés consultar las instrucciones de acceso y los detalles en cualquier momento:</p>

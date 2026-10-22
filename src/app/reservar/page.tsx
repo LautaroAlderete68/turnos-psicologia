@@ -505,7 +505,7 @@ export default function ReservarPage() {
               disabled={!canProceedStep1}
               className={`flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm transition ${
                 canProceedStep1
-                  ? "bg-violet-700 hover:bg-violet-800 active:scale-95"
+                  ? "bg-rose-600 hover:bg-rose-700 active:scale-95"
                   : "bg-gray-300 cursor-not-allowed"
               }`}
             >
@@ -626,7 +626,7 @@ export default function ReservarPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="flex items-center gap-2 rounded-xl bg-violet-700 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-violet-800 active:scale-95 disabled:bg-gray-400"
+              className="flex items-center gap-2 rounded-xl bg-rose-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-rose-700 active:scale-95 disabled:bg-gray-400"
             >
               {submitting ? (
                 <>
@@ -694,7 +694,7 @@ export default function ReservarPage() {
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <button
               onClick={() => router.push(`/turno/${bookingResult.token}`)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-violet-700 px-6 py-3.5 text-base font-semibold text-white shadow-md hover:bg-violet-800 sm:w-auto"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-rose-600 px-6 py-3.5 text-base font-semibold text-white shadow-md hover:bg-rose-700 sm:w-auto"
             >
               <CreditCard className="h-5 w-5" />
               <span>Ver mi turno y adjuntar comprobante</span>

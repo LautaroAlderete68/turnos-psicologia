@@ -193,14 +193,14 @@ export default function AdminReservationsClient({
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
                           app.status === "CONFIRMADA"
-                            ? "bg-green-100 text-green-800"
+                            ? "bg-rose-100 text-rose-800"
                             : app.status === "COMPROBANTE_ENVIADO"
-                            ? "bg-blue-100 text-blue-800"
+                            ? "bg-rose-50 text-rose-700"
                             : app.status === "PENDIENTE_PAGO"
                             ? "bg-amber-100 text-amber-800"
                             : app.status === "CANCELADA"
                             ? "bg-gray-100 text-gray-600"
-                            : "bg-purple-100 text-purple-800"
+                            : "bg-rose-200 text-rose-900"
                         }`}
                       >
                         {app.status}
@@ -210,9 +210,9 @@ export default function AdminReservationsClient({
                       <span
                         className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${
                           app.payment?.status === "APROBADO"
-                            ? "bg-green-100 text-green-800"
+                            ? "bg-rose-100 text-rose-800"
                             : app.payment?.status === "COMPROBANTE_RECIBIDO"
-                            ? "bg-blue-100 text-blue-800"
+                            ? "bg-rose-50 text-rose-700"
                             : app.payment?.status === "RECHAZADO"
                             ? "bg-red-100 text-red-800"
                             : "bg-amber-100 text-amber-800"
