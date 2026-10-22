@@ -32,7 +32,7 @@ model PsychologistProfile {
   specialty                String   @default("Psicología Clínica de Adultos")
   bio                      String   @default("Atención psicológica profesional y confidencial, con enfoque cognitivo-conductual e integral.")
   phone                    String   @default("+54 11 5555-5555")
-  email                    String   @default("consultorio@psicologia.com")
+  email                    String   @default("contactopsicotp@gmail.com")
   address                  String   @default("Atención Online / Videollamada")
   allowPresencial          Boolean  @default(false)
   allowVirtual             Boolean  @default(true)

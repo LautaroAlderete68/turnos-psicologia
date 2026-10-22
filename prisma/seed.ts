@@ -44,7 +44,7 @@ async function main() {
       specialty: "Psicología Clínica de Adultos y Parejas",
       bio: "Especialista en terapia cognitiva conductual (TCC) y mindfulness. Brindo un espacio de escucha cálido, profesional y libre de juicios para acompañarte en tu proceso personal.",
       phone: "+54 9 11 4050-6070",
-      email: "consultas@marisaebhardt.com",
+      email: "contactopsicotp@gmail.com",
       address: "Atención Online / Videollamada",
       allowPresencial: false,
       allowVirtual: true,

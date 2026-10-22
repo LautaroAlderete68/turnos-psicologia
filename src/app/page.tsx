@@ -33,7 +33,7 @@ export default async function HomePage() {
     "Atención psicológica profesional y confidencial. Un espacio de escucha cálido y empático para acompañarte en tu bienestar emocional.";
   const address = profile?.address || "Consultorio profesional";
   const phone = profile?.phone || "Consultar por mensaje";
-  const email = profile?.email || "consultorio@psicologia.com";
+  const email = profile?.email || "contactopsicotp@gmail.com";
   const price = SESSION_PRICE;
   const duration = SESSION_DURATION_MINUTES;
   const allowPresencial = profile?.allowPresencial ?? true;
