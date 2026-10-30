@@ -50,10 +50,16 @@ export async function GET(
     }
 
     const headers = new Headers();
-    headers.set("Content-Type", proof.mimeType);
-    headers.set("Content-Length", proof.sizeBytes.toString());
-    headers.set("Content-Disposition", `inline; filename="${proof.originalFilename}"`);
+    const isPdf = proof.mimeType === "application/pdf" || proof.originalFilename.toLowerCase().endsWith(".pdf");
+    const mimeType = isPdf ? "application/pdf" : proof.mimeType;
+    const safeFilename = proof.originalFilename.replace(/["\r\n]/g, "");
+
+    headers.set("Content-Type", mimeType);
+    headers.set("Content-Length", (fileBuffer.byteLength || (fileBuffer as any).length || proof.sizeBytes).toString());
+    headers.set("Content-Disposition", `inline; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(safeFilename)}`);
     headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    headers.set("X-Frame-Options", "SAMEORIGIN");
+    headers.set("Content-Security-Policy", "frame-ancestors 'self'");
 
     return new NextResponse(fileBuffer as any, {
       status: 200,

@@ -384,7 +384,7 @@ export default function AdminPaymentsClient({
       {/* Modal: Vista Previa Segura del Comprobante */}
       {previewProof && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl flex flex-col max-h-[90vh]">
+          <div className="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between border-b pb-3">
               <div>
                 <h3 className="font-bold text-gray-900 text-base">
@@ -424,11 +424,27 @@ export default function AdminPaymentsClient({
                   className="max-h-[60vh] max-w-full rounded-lg object-contain shadow-sm"
                 />
               ) : (
-                <iframe
-                  src={`/api/proofs/${previewProof.id}/download`}
-                  title="Comprobante PDF"
-                  className="h-[60vh] w-full rounded-lg border-0"
-                />
+                <div className="w-full h-[65vh] flex flex-col">
+                  <object
+                    data={`/api/proofs/${previewProof.id}/download`}
+                    type="application/pdf"
+                    className="h-full w-full rounded-lg border-0 shadow-xs"
+                  >
+                    <div className="flex h-full flex-col items-center justify-center p-6 text-center text-gray-500 bg-white rounded-lg">
+                      <p className="mb-2 text-sm font-medium text-gray-700">Comprobante en formato PDF</p>
+                      <p className="mb-4 text-xs text-gray-500">Podés previsualizar o descargar el archivo completo directamente:</p>
+                      <a
+                        href={`/api/proofs/${previewProof.id}/download`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-sage-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-sage-700 transition"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                        <span>Abrir o descargar PDF</span>
+                      </a>
+                    </div>
+                  </object>
+                </div>
               )}
             </div>
 
