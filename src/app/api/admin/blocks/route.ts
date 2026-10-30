@@ -97,6 +97,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Verificar si ya existe una reserva activa o con comprobante pendiente de aprobación
+    const conflictingApp = await prisma.appointment.findFirst({
+      where: {
+        startTime: { lt: endUtc },
+        endTime: { gt: startUtc },
+        status: { in: ["CONFIRMADA", "COMPROBANTE_ENVIADO"] },
+      },
+    });
+
+    if (conflictingApp) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No es posible bloquear este horario porque ya existe un turno reservado o con comprobante pendiente de aprobación.",
+        },
+        { status: 400 }
+      );
+    }
+
     const block = await prisma.scheduleBlock.create({
       data: {
         startTime: startUtc,

@@ -150,6 +150,19 @@ export default function AdminCalendarClient({
       return;
     }
 
+    const conflictingApp = appointments.find((app) => {
+      if (getArgentinaDateString(app.startTime) !== dateStr) return false;
+      if (app.status === "CANCELADA") return false;
+      const aStart = formatTime24h(app.startTime);
+      const aEnd = formatTime24h(app.endTime);
+      return startTimeStr < aEnd && endTimeStr > aStart;
+    });
+
+    if (conflictingApp) {
+      alert("No podés bloquear este horario porque ya cuenta con un turno reservado o con comprobante pendiente de aprobación.");
+      return;
+    }
+
     setSubmittingBlock(true);
     const reason = dayLockReason.trim() || defaultReason || `Turno ${startTimeStr} bloqueado`;
 
@@ -465,8 +478,8 @@ export default function AdminCalendarClient({
                     className={`w-full text-left rounded-xl border p-2 text-xs transition shadow-2xs hover:shadow-sm ${
                       app.status === "CONFIRMADA"
                         ? "border-rose-200 bg-rose-50/80 text-rose-950"
-                        : app.status === "COMPROBANTE_ENVIADO"
-                        ? "border-rose-200 bg-rose-50/80 text-rose-950"
+                        : app.status === "COMPROBANTE_ENVIADO" || app.payment?.status === "COMPROBANTE_RECIBIDO"
+                        ? "border-amber-300 bg-amber-50/90 text-amber-950 ring-1 ring-amber-300/60"
                         : app.status === "CANCELADA"
                         ? "border-gray-200 bg-gray-50 text-gray-400 line-through"
                         : "border-amber-200 bg-amber-50/80 text-amber-950"
@@ -691,12 +704,20 @@ export default function AdminCalendarClient({
                           return slot.start < aEnd && slot.end > aStart;
                         });
 
+                        const isProofPending = Boolean(
+                          existingApp &&
+                            (existingApp.status === "COMPROBANTE_ENVIADO" ||
+                              existingApp.payment?.status === "COMPROBANTE_RECIBIDO")
+                        );
+
                         return (
                           <div
                             key={slot.start}
                             className={`flex items-center justify-between p-2 rounded-lg border text-xs ${
                               existingBlock
                                 ? "bg-red-50 border-red-200 text-red-900"
+                                : isProofPending
+                                ? "bg-amber-50/80 border-amber-300 text-amber-950 ring-1 ring-amber-300/60"
                                 : existingApp
                                 ? "bg-rose-50 border-rose-200 text-rose-900"
                                 : "bg-white border-gray-200 text-gray-800"
@@ -709,6 +730,10 @@ export default function AdminCalendarClient({
                               {existingBlock ? (
                                 <span className="text-[10px] text-red-600 block truncate max-w-[140px]">
                                   Bloqueado ({existingBlock.reason})
+                                </span>
+                              ) : isProofPending ? (
+                                <span className="text-[10px] text-amber-800 font-semibold block truncate max-w-[140px]">
+                                  Turno: {existingApp.patient.fullName} (En revisión)
                                 </span>
                               ) : existingApp ? (
                                 <span className="text-[10px] text-rose-700 font-semibold block truncate max-w-[140px]">
@@ -730,6 +755,10 @@ export default function AdminCalendarClient({
                               >
                                 Desbloquear
                               </button>
+                            ) : isProofPending ? (
+                              <span className="text-[10px] font-semibold text-amber-800 uppercase px-2 py-0.5 bg-amber-100 rounded border border-amber-300 shadow-2xs">
+                                Reservado
+                              </span>
                             ) : existingApp ? (
                               <span className="text-[10px] font-semibold text-rose-600 uppercase px-1.5 py-0.5 bg-white rounded border border-rose-200">
                                 Reservado
