@@ -37,7 +37,7 @@ export function FloatingWhatsApp({ phone }: FloatingWhatsAppProps) {
         target="_blank"
         rel="noopener noreferrer"
         aria-label="Contactar por WhatsApp"
-        className="flex items-center gap-2.5 rounded-full bg-[#25D366] px-4 py-3 text-white shadow-lg transition-all duration-300 hover:bg-[#20ba5a] hover:shadow-xl hover:scale-105 active:scale-95"
+        className="flex items-center gap-2.5 rounded-full bg-rose-600 px-4 py-3 text-white shadow-lg transition-all duration-300 hover:bg-rose-700 hover:shadow-xl hover:scale-105 active:scale-95 border border-rose-500/30"
       >
         {/* Ícono oficial de WhatsApp SVG */}
         <svg
