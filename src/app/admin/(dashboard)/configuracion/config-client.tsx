@@ -253,14 +253,25 @@ export default function AdminConfigClient({
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-700">Anticipación Mínima (Horas)</label>
+            <label className="block text-xs font-semibold text-gray-700">
+              Anticipación Mínima para Reservar (Minutos)
+            </label>
             <input
               type="number"
               required
-              value={profile.minNoticeHours || 4}
-              onChange={(e) => handleProfileChange("minNoticeHours", e.target.value)}
+              min={0}
+              step={5}
+              value={profile.minNoticeMinutes !== undefined ? profile.minNoticeMinutes : (profile.minNoticeHours ? profile.minNoticeHours * 60 : 30)}
+              onChange={(e) => {
+                const mins = Number(e.target.value);
+                handleProfileChange("minNoticeMinutes", mins);
+                handleProfileChange("minNoticeHours", Math.ceil(mins / 60));
+              }}
               className="mt-1 w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-sage-600"
             />
+            <span className="mt-1 text-[11px] text-gray-500 block">
+              Tiempo previo mínimo con el que un paciente puede tomar un turno (por defecto 30 minutos).
+            </span>
           </div>
 
           <div>

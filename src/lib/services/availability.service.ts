@@ -200,7 +200,8 @@ export class AvailabilityService {
       },
     });
 
-    const minNoticeLimit = addHours(now, profile.minNoticeHours);
+    const minNoticeMins = profile.minNoticeMinutes ?? (profile.minNoticeHours ? profile.minNoticeHours * 60 : 30);
+    const minNoticeLimit = addMinutes(now, minNoticeMins);
 
     // 6. Evaluar disponibilidad de cada slot
     const slots: TimeSlot[] = candidateSlots.map((candidate) => {

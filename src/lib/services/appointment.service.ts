@@ -73,9 +73,11 @@ export class AppointmentService {
     }
 
     // Validación: Anticipación mínima
-    const minNoticeLimit = addHours(now, profile.minNoticeHours);
+    const minNoticeMins = profile.minNoticeMinutes ?? (profile.minNoticeHours ? profile.minNoticeHours * 60 : 30);
+    const minNoticeLimit = addMinutes(now, minNoticeMins);
     if (startTimeUtc < minNoticeLimit) {
-      throw new Error(`Se requiere una anticipación mínima de ${profile.minNoticeHours} horas para reservar.`);
+      const noticeText = minNoticeMins >= 60 ? `${Math.round(minNoticeMins / 60)} hora(s)` : `${minNoticeMins} minutos`;
+      throw new Error(`Se requiere una anticipación mínima de ${noticeText} para reservar.`);
     }
 
     const expiresAt = addMinutes(now, profile.pendingExpirationMinutes);
