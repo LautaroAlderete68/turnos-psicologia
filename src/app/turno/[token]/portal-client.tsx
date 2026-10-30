@@ -110,9 +110,15 @@ export default function PatientPortalClient({
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        setUploadError(data.error || "No se pudo subir el comprobante.");
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch (jsonErr) {
+        console.error("No se pudo parsear respuesta JSON:", jsonErr);
+      }
+
+      if (!res.ok || !data?.success) {
+        setUploadError(data?.error || `Error del servidor (${res.status}): No se pudo procesar el comprobante.`);
         return;
       }
 
@@ -137,8 +143,9 @@ export default function PatientPortalClient({
           ],
         },
       }));
-    } catch {
-      setUploadError("Error de conexión al cargar el archivo.");
+    } catch (err: any) {
+      console.error("Error al cargar comprobante:", err);
+      setUploadError(err?.message ? `Error de carga: ${err.message}` : "Error de conexión al cargar el archivo.");
     } finally {
       setUploading(false);
     }

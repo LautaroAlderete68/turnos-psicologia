@@ -2,6 +2,7 @@ import fs from "fs/promises";
 import fsSync from "fs";
 import path from "path";
 import crypto from "crypto";
+import os from "os";
 
 export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
@@ -90,23 +91,35 @@ export interface IStorageProvider {
 
 /**
  * Driver de almacenamiento local privado.
- * Guarda los archivos fuera del directorio público de Next.js.
+ * En Vercel / serverless usa el directorio temporal /tmp que cuenta con permisos de escritura.
  */
 export class LocalDiskStorageProvider implements IStorageProvider {
-  private baseDir: string;
-
-  constructor(customPath?: string) {
-    this.baseDir = path.resolve(process.cwd(), customPath || process.env.STORAGE_LOCAL_PATH || "./storage/proofs");
-    if (!fsSync.existsSync(this.baseDir)) {
-      fsSync.mkdirSync(this.baseDir, { recursive: true });
+  private getBaseDir(): string {
+    // Si se especificó explícitamente una ruta
+    if (process.env.STORAGE_LOCAL_PATH) {
+      return path.resolve(process.env.STORAGE_LOCAL_PATH);
     }
+    // En Vercel / AWS Lambda la única carpeta con permisos de escritura es /tmp
+    if (process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME) {
+      return path.join(os.tmpdir(), "turnos-proofs");
+    }
+    return path.resolve(process.cwd(), "./storage/proofs");
+  }
+
+  private ensureDir(): string {
+    const dir = this.getBaseDir();
+    if (!fsSync.existsSync(dir)) {
+      fsSync.mkdirSync(dir, { recursive: true });
+    }
+    return dir;
   }
 
   async save(buffer: Buffer, _originalFilename: string, mimeType: SupportedMimeType): Promise<StorageResult> {
+    const baseDir = this.ensureDir();
     const randomUuid = crypto.randomUUID();
     const ext = mimeType === "application/pdf" ? ".pdf" : mimeType === "image/png" ? ".png" : mimeType === "image/webp" ? ".webp" : ".jpg";
     const storageKey = `${randomUuid}${ext}`;
-    const filePath = path.join(this.baseDir, storageKey);
+    const filePath = path.join(baseDir, storageKey);
 
     await fs.writeFile(filePath, buffer);
 
@@ -118,9 +131,9 @@ export class LocalDiskStorageProvider implements IStorageProvider {
   }
 
   async get(storageKey: string): Promise<Buffer | null> {
-    // Sanitización contra path traversal
+    const baseDir = this.ensureDir();
     const safeKey = path.basename(storageKey);
-    const filePath = path.join(this.baseDir, safeKey);
+    const filePath = path.join(baseDir, safeKey);
 
     try {
       return await fs.readFile(filePath);
@@ -130,8 +143,9 @@ export class LocalDiskStorageProvider implements IStorageProvider {
   }
 
   async delete(storageKey: string): Promise<boolean> {
+    const baseDir = this.ensureDir();
     const safeKey = path.basename(storageKey);
-    const filePath = path.join(this.baseDir, safeKey);
+    const filePath = path.join(baseDir, safeKey);
 
     try {
       await fs.unlink(filePath);
