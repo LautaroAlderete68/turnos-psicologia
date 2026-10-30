@@ -48,6 +48,9 @@ export default function ReservarPage() {
   const [selectedTime, setSelectedTime] = useState<string>("");
   const [modality, setModality] = useState<"PRESENCIAL" | "VIRTUAL">("VIRTUAL");
 
+  // Fecha de hoy en formato YYYY-MM-DD
+  const todayStr = format(new Date(), "yyyy-MM-dd");
+
   // Datos del perfil profesional cargados de la API
   const [profile, setProfile] = useState<{
     sessionPrice: number;
@@ -100,14 +103,15 @@ export default function ReservarPage() {
             }
           }
 
-          // Auto-seleccionar primer día abierto con slots disponibles si no hay ninguno seleccionado
+          // Auto-seleccionar primer día disponible que NO sea fecha pasada
           const firstOpen = data.days.find(
-            (d: DayData) => d.isOpen && d.slots.some((s) => s.available)
+            (d: DayData) => d.date >= todayStr && d.isOpen && d.slots.some((s) => s.available)
           );
           if (firstOpen) {
             setSelectedDate(firstOpen.date);
           } else {
-            setSelectedDate(dateStrings[0]);
+            const firstValid = data.days.find((d: DayData) => d.date >= todayStr);
+            setSelectedDate(firstValid ? firstValid.date : dateStrings[dateStrings.length - 1]);
           }
         } else {
           setErrorMessage(data.error || "No se pudo cargar la agenda");
@@ -407,19 +411,25 @@ export default function ReservarPage() {
             <div className="mt-4 grid grid-cols-7 gap-1.5 sm:gap-2">
               {weekDaysData.map((day) => {
                 const dateObj = new Date(day.date + "T12:00:00");
+                const isPast = day.date < todayStr;
                 const isSelected = day.date === selectedDate;
-                const hasSlots = day.isOpen && day.slots.some((s) => s.available);
+                const hasSlots = !isPast && day.isOpen && day.slots.some((s) => s.available);
 
                 return (
                   <button
                     key={day.date}
                     type="button"
+                    disabled={isPast}
                     onClick={() => {
-                      setSelectedDate(day.date);
-                      setSelectedTime("");
+                      if (!isPast) {
+                        setSelectedDate(day.date);
+                        setSelectedTime("");
+                      }
                     }}
                     className={`flex flex-col items-center justify-center rounded-xl p-2 text-center transition ${
-                      isSelected
+                      isPast
+                        ? "bg-gray-100/50 text-gray-300 cursor-not-allowed opacity-40 select-none"
+                        : isSelected
                         ? "bg-sage-600 text-white shadow-xs"
                         : hasSlots
                         ? "bg-warm-50 hover:bg-warm-100 text-gray-800"
@@ -433,7 +443,9 @@ export default function ReservarPage() {
                       {format(dateObj, "d")}
                     </span>
                     <span className="mt-0.5 text-[9px] sm:text-[10px]">
-                      {hasSlots ? (
+                      {isPast ? (
+                        <span className="text-gray-300">Pasado</span>
+                      ) : hasSlots ? (
                         <span className={isSelected ? "text-sage-100" : "text-sage-700"}>
                           Libre
                         </span>
