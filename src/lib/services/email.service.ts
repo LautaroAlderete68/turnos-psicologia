@@ -19,7 +19,14 @@ export class EmailService {
   }
 
   private static getAppUrl(): string {
-    return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const configured = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
+    if (configured) {
+      return configured.replace(/\/+$/, "");
+    }
+    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+      return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+    }
+    return "https://turnos-psicologia.vercel.app";
   }
 
   private static getSmtpTransporter(): Transporter {

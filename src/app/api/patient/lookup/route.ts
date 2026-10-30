@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       // Generar token para su turno más próximo o activo
       const latestApp = patient.appointments[0];
       const rawToken = await createPatientToken(latestApp.id, 72);
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://turnos-psicologia.vercel.app")).replace(/\/+$/, "");
 
       EmailService.send({
         to: patient.email,
