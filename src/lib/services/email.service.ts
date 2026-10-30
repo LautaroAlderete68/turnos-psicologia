@@ -20,13 +20,11 @@ export class EmailService {
 
   private static getAppUrl(): string {
     const configured = process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL;
-    if (configured) {
-      return configured.replace(/\/+$/, "");
+    // Si no está configurada o si quedó con la URL temporal vieja de preview, forzar siempre el dominio principal
+    if (!configured || configured.includes("joblautaro-5861s-projects.vercel.app") || configured.includes("localhost")) {
+      return "https://turnos-psicologia.vercel.app";
     }
-    if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
-      return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
-    }
-    return "https://turnos-psicologia.vercel.app";
+    return configured.replace(/\/+$/, "");
   }
 
   private static getSmtpTransporter(): Transporter {
