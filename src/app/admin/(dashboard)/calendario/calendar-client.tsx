@@ -31,6 +31,7 @@ import {
   formatDateTimeArgentina,
   getArgentinaDayOfWeek,
   getArgentinaDateString,
+  toArgentinaZoned,
 } from "@/lib/timezone";
 
 interface AdminCalendarClientProps {
@@ -82,17 +83,35 @@ export default function AdminCalendarClient({
     setDayLockReason("");
     const dayOfWeek = getArgentinaDayOfWeek(day);
     const schedule = weeklySchedules.find((s: any) => s.dayOfWeek === dayOfWeek);
-    setCustomSlotStart(schedule?.startTime || "09:00");
-    const [h, m] = (schedule?.startTime || "09:00").split(":").map(Number);
-    const endH = Math.min(23, h + 1);
-    setCustomSlotEnd(`${String(endH).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    const dateStr = format(day, "yyyy-MM-dd");
+    const todayStr = getArgentinaDateString(new Date());
+    const nowTimeStr = formatTime24h(toArgentinaZoned(new Date()));
+
+    let defaultStart = schedule?.startTime || "09:00";
+    if (dateStr === todayStr && defaultStart < nowTimeStr) {
+      const [nowH] = nowTimeStr.split(":").map(Number);
+      defaultStart = `${String(Math.min(22, nowH + 1)).padStart(2, "0")}:00`;
+    }
+    setCustomSlotStart(defaultStart);
+    const [h, m] = defaultStart.split(":").map(Number);
+    const duration = profile?.sessionDuration || 60;
+    const endMinutes = h * 60 + m + duration;
+    const endH = Math.min(23, Math.floor(endMinutes / 60));
+    const endM = endMinutes % 60;
+    setCustomSlotEnd(`${String(endH).padStart(2, "0")}:${String(endM).padStart(2, "0")}`);
   };
 
   // Crear bloqueo para todo el día
   const handleBlockWholeDay = async () => {
     if (!selectedLockDay) return;
-    setSubmittingBlock(true);
     const dateStr = format(selectedLockDay, "yyyy-MM-dd");
+    const todayStr = getArgentinaDateString(new Date());
+    if (dateStr < todayStr) {
+      alert("No podés bloquear una fecha que ya ha pasado.");
+      return;
+    }
+
+    setSubmittingBlock(true);
     const reason = dayLockReason.trim() || "Día completo no laborable / Bloqueado";
 
     try {
@@ -122,8 +141,16 @@ export default function AdminCalendarClient({
   // Crear bloqueo para un turno o franja horaria específica
   const handleBlockSlot = async (startTimeStr: string, endTimeStr: string, defaultReason?: string) => {
     if (!selectedLockDay) return;
-    setSubmittingBlock(true);
     const dateStr = format(selectedLockDay, "yyyy-MM-dd");
+    const todayStr = getArgentinaDateString(new Date());
+    const nowTimeStr = formatTime24h(toArgentinaZoned(new Date()));
+
+    if (dateStr < todayStr || (dateStr === todayStr && startTimeStr < nowTimeStr)) {
+      alert("No podés bloquear un horario que ya ha pasado.");
+      return;
+    }
+
+    setSubmittingBlock(true);
     const reason = dayLockReason.trim() || defaultReason || `Turno ${startTimeStr} bloqueado`;
 
     try {
@@ -155,6 +182,13 @@ export default function AdminCalendarClient({
     e.preventDefault();
     if (!blockReason.trim()) {
       alert("Indicá el motivo del bloqueo");
+      return;
+    }
+
+    const todayStr = getArgentinaDateString(new Date());
+    const nowTimeStr = formatTime24h(toArgentinaZoned(new Date()));
+    if (blockDate < todayStr || (blockDate === todayStr && blockStartTime < nowTimeStr)) {
+      alert("No podés crear un bloqueo para una fecha u horario que ya ha pasado.");
       return;
     }
 
@@ -209,14 +243,30 @@ export default function AdminCalendarClient({
     }
 
     const duration = profile?.sessionDuration || 60;
+    const buffer = profile?.bufferMinutes ?? 0;
+    const step = duration + buffer;
+
     const [startH, startM] = (schedule.startTime || "09:00").split(":").map(Number);
     const [endH, endM] = (schedule.endTime || "18:00").split(":").map(Number);
 
     const startMins = startH * 60 + startM;
     const endMins = endH * 60 + endM;
 
+    const breakStartMins = schedule.breakStartTime
+      ? schedule.breakStartTime.split(":").map(Number)[0] * 60 + schedule.breakStartTime.split(":").map(Number)[1]
+      : null;
+    const breakEndMins = schedule.breakEndTime
+      ? schedule.breakEndTime.split(":").map(Number)[0] * 60 + schedule.breakEndTime.split(":").map(Number)[1]
+      : null;
+
     const slots: { start: string; end: string }[] = [];
-    for (let m = startMins; m + duration <= endMins; m += duration) {
+    for (let m = startMins; m + duration <= endMins; m += step) {
+      if (breakStartMins !== null && breakEndMins !== null) {
+        if (m < breakEndMins && m + duration > breakStartMins) {
+          continue;
+        }
+      }
+
       const sH = Math.floor(m / 60);
       const sM = m % 60;
       const eH = Math.floor((m + duration) / 60);
@@ -224,16 +274,6 @@ export default function AdminCalendarClient({
 
       const startStr = `${String(sH).padStart(2, "0")}:${String(sM).padStart(2, "0")}`;
       const endStr = `${String(eH).padStart(2, "0")}:${String(eM).padStart(2, "0")}`;
-
-      if (schedule.breakStartTime && schedule.breakEndTime) {
-        const [bStartH, bStartM] = schedule.breakStartTime.split(":").map(Number);
-        const [bEndH, bEndM] = schedule.breakEndTime.split(":").map(Number);
-        const bStart = bStartH * 60 + bStartM;
-        const bEnd = bEndH * 60 + bEndM;
-        if (m < bEnd && m + duration > bStart) {
-          continue;
-        }
-      }
 
       slots.push({ start: startStr, end: endStr });
     }
@@ -480,7 +520,18 @@ export default function AdminCalendarClient({
         const dayBlocks = blocks.filter(
           (b) => getArgentinaDateString(b.startTime) === dateStr
         );
-        const { isActive: isDayScheduleActive, slots } = getSlotsForSelectedDay();
+        const { isActive: isDayScheduleActive, slots: rawSlots } = getSlotsForSelectedDay();
+        const todayStr = getArgentinaDateString(new Date());
+        const nowTimeStr = formatTime24h(toArgentinaZoned(new Date()));
+        const isPastDay = dateStr < todayStr;
+        const isToday = dateStr === todayStr;
+
+        // Ocultar horarios ya pasados si es hoy (o todos si la fecha entera es pasada)
+        const slots = rawSlots.filter((slot) => {
+          if (isPastDay) return false;
+          if (isToday && slot.start <= nowTimeStr) return false;
+          return true;
+        });
 
         const wholeDayBlock = dayBlocks.find((b) => {
           const bStart = formatTime24h(b.startTime);
@@ -522,6 +573,13 @@ export default function AdminCalendarClient({
 
               {/* Contenido scrolleable */}
               <div className="mt-4 space-y-5 overflow-y-auto pr-1 flex-1 text-xs sm:text-sm">
+                {/* Cartel si la fecha entera ya pasó */}
+                {isPastDay && (
+                  <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 text-center text-xs text-gray-500">
+                    Esta fecha ya ha pasado. No es posible crear ni modificar bloqueos en días anteriores.
+                  </div>
+                )}
+
                 {/* Cartel explicativo si es fin de semana / no laborable */}
                 {!isDayScheduleActive && (
                   <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-4">
@@ -695,7 +753,11 @@ export default function AdminCalendarClient({
                     </div>
                   ) : (
                     <p className="text-xs text-gray-500 italic p-3 bg-gray-50 rounded-xl border">
-                      No hay horarios habituales para este día. Podés usar el bloqueo de día completo o especificar una franja personalizada abajo.
+                      {isPastDay
+                        ? "Esta fecha ya pasó."
+                        : isToday && rawSlots.length > 0
+                        ? "Todos los turnos de la jornada de hoy ya han transcurrido."
+                        : "No hay horarios habituales para este día. Podés usar el bloqueo de día completo o especificar una franja personalizada abajo."}
                     </p>
                   )}
                 </div>

@@ -70,6 +70,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // No permitir crear bloqueos en el pasado
+    const now = new Date();
+    if (endUtc <= now) {
+      return NextResponse.json(
+        { success: false, error: "No es posible crear bloqueos para horarios que ya han pasado." },
+        { status: 400 }
+      );
+    }
+
     // Verificar si ya existe un bloqueo idéntico o que se superponga
     const existingBlock = await prisma.scheduleBlock.findFirst({
       where: {
