@@ -14,7 +14,7 @@ import {
   AlertCircle,
   CheckCircle2,
 } from "lucide-react";
-import { formatDateTimeArgentina } from "@/lib/timezone";
+import { formatDateTimeArgentina, getArgentinaDateString } from "@/lib/timezone";
 
 interface ReservationsClientProps {
   appointments: any[];
@@ -27,6 +27,8 @@ export default function AdminReservationsClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TODOS");
   const [modalityFilter, setModalityFilter] = useState("TODAS");
+  const [timeFilter, setTimeFilter] = useState("FUTUROS"); // "FUTUROS" | "TODOS" | "PASADOS"
+  const todayStr = useMemo(() => getArgentinaDateString(new Date()), []);
 
   // Modal de edición de turno
   const [selectedApp, setSelectedApp] = useState<any | null>(null);

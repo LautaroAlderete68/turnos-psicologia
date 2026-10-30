@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   CreditCard,
   CheckCircle2,
@@ -13,7 +13,7 @@ import {
   Loader2,
   ExternalLink,
 } from "lucide-react";
-import { formatDateTimeArgentina } from "@/lib/timezone";
+import { formatDateTimeArgentina, getArgentinaDateString } from "@/lib/timezone";
 
 interface AdminPaymentsClientProps {
   payments: any[];
