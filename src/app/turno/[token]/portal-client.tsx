@@ -16,6 +16,7 @@ import {
   XCircle,
   ShieldCheck,
   FileText,
+  ExternalLink,
 } from "lucide-react";
 import { formatDateTimeArgentina } from "@/lib/timezone";
 
@@ -303,6 +304,29 @@ export default function PatientPortalClient({
             </div>
           </div>
         </div>
+        {/* Banner de Acceso a Sesión Virtual */}
+        {appointment.modality === "VIRTUAL" && appointment.meetingUrl && (
+          <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-5 text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-4">
+            <div>
+              <div className="flex items-center justify-center sm:justify-start gap-2 text-rose-800 font-bold">
+                <Video className="h-5 w-5" />
+                <span>Sala de Videollamada Confirmada</span>
+              </div>
+              <p className="mt-1 text-xs text-rose-900/80">
+                Tu sesión virtual está lista. Podés ingresar directamente en el horario pautado.
+              </p>
+            </div>
+            <a
+              href={appointment.meetingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 sm:mt-0 inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-rose-700 transition active:scale-95 shrink-0"
+            >
+              <span>Ingresar a la Sesión</span>
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          </div>
+        )}
       </div>
 
       {/* ===================================================================== */}

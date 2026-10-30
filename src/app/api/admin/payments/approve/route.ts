@@ -3,6 +3,7 @@ import { requireAdminSession } from "@/lib/auth";
 import { PaymentService } from "@/lib/services/payment.service";
 import prisma from "@/lib/prisma";
 import { EmailService } from "@/lib/services/email.service";
+import { MeetingService } from "@/lib/services/meeting.service";
 import { formatDateTimeArgentina } from "@/lib/timezone";
 
 export async function POST(req: NextRequest) {
@@ -29,15 +30,47 @@ export async function POST(req: NextRequest) {
     });
 
     if (appointment && appointment.accessTokens.length > 0) {
-      // Notificar al paciente en segundo plano
-      EmailService.sendBookingConfirmed({
-        to: appointment.patient.email,
-        patientName: appointment.patient.fullName,
-        publicCode: appointment.publicCode,
-        dateTimeFormatted: formatDateTimeArgentina(appointment.startTime),
-        modality: appointment.modality === "PRESENCIAL" ? "Presencial en consultorio" : "Atención virtual",
-        token: appointment.accessTokens[0].id, // Enlace seguro
-      }).catch((err) => console.error("Error al despachar email de turno confirmado:", err));
+      let meetingUrl: string | null = appointment.meetingUrl;
+
+      // Si el turno es VIRTUAL y aún no tiene sala asignada, generar una automáticamente
+      if (appointment.modality === "VIRTUAL" && !meetingUrl) {
+        try {
+          const meeting = await MeetingService.createMeeting({
+            appointmentId: appointment.id,
+            publicCode: appointment.publicCode,
+            patientName: appointment.patient.fullName,
+            patientEmail: appointment.patient.email,
+            startTime: appointment.startTime,
+            endTime: appointment.endTime,
+          });
+
+          if (meeting?.url) {
+            meetingUrl = meeting.url;
+            await prisma.appointment.update({
+              where: { id: appointment.id },
+              data: { meetingUrl },
+            });
+            console.log(`[Approve Payment] Sala virtual asignada (${meeting.provider}): ${meetingUrl}`);
+          }
+        } catch (meetingErr) {
+          console.error("[Approve Payment] Error al generar sala virtual:", meetingErr);
+        }
+      }
+
+      // Notificar al paciente asegurando que Vercel espere el envío
+      try {
+        await EmailService.sendBookingConfirmed({
+          to: appointment.patient.email,
+          patientName: appointment.patient.fullName,
+          publicCode: appointment.publicCode,
+          dateTimeFormatted: formatDateTimeArgentina(appointment.startTime),
+          modality: appointment.modality === "PRESENCIAL" ? "Presencial en consultorio" : "Atención virtual",
+          token: appointment.accessTokens[0].id,
+          meetingUrl,
+        });
+      } catch (err) {
+        console.error("[Approve Payment] Error al despachar email de turno confirmado:", err);
+      }
     }
 
     return NextResponse.json({ success: true, payment: updatedPayment });

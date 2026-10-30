@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { addDays, format, subDays } from "date-fns";
 import prisma from "../src/lib/prisma";
 import { AvailabilityService } from "../src/lib/services/availability.service";
@@ -23,8 +23,10 @@ describe("Flujos Críticos Obligatorios del Sistema de Turnos", () => {
       candidate = addDays(candidate, 1);
     }
     testDateStr = format(candidate, "yyyy-MM-dd");
+  });
 
-    // Limpiar reservas y bloqueos para la fecha de prueba
+  beforeEach(async () => {
+    // Limpiar reservas y bloqueos de prueba antes de cada test para aislar las pruebas
     const startUtc = argentinaTimeToUtc(testDateStr, "00:00");
     const endUtc = argentinaTimeToUtc(testDateStr, "23:59");
 

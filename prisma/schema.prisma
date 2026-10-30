@@ -110,6 +110,7 @@ model Appointment {
   price              Float
   adminNotes         String?
   cancellationReason String?
+  meetingUrl         String?
   expiresAt          DateTime?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
