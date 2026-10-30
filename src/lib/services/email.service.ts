@@ -8,23 +8,36 @@ export interface SendEmailOptions {
 }
 
 export class EmailService {
-  private static driver = process.env.EMAIL_DRIVER || "console";
-  private static from = process.env.EMAIL_FROM || "Consultorio Psicológico <turnos@consultorio.com>";
-  private static appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-
   private static smtpTransporter: Transporter | null = null;
+
+  private static getDriver(): string {
+    return (process.env.EMAIL_DRIVER || "console").toLowerCase();
+  }
+
+  private static getFrom(): string {
+    return process.env.EMAIL_FROM || "Consultorio Psicológico <contactopsicotp@gmail.com>";
+  }
+
+  private static getAppUrl(): string {
+    return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  }
 
   private static getSmtpTransporter(): Transporter {
     if (!this.smtpTransporter) {
-      const isGmail = this.driver === "gmail" || process.env.SMTP_HOST === "smtp.gmail.com";
+      const driver = this.getDriver();
+      const isGmail = driver === "gmail" || process.env.SMTP_HOST === "smtp.gmail.com";
 
       if (isGmail) {
+        const user = process.env.GMAIL_USER || process.env.SMTP_USER;
+        const pass = (process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || "").replace(/\s+/g, "");
+
+        if (!user || !pass) {
+          console.error("[EmailService] ADVERTENCIA: GMAIL_USER o GMAIL_APP_PASSWORD no están configurados.");
+        }
+
         this.smtpTransporter = nodemailer.createTransport({
           service: "gmail",
-          auth: {
-            user: process.env.SMTP_USER || process.env.GMAIL_USER,
-            pass: process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD,
-          },
+          auth: { user, pass },
         });
       } else {
         this.smtpTransporter = nodemailer.createTransport({
@@ -46,27 +59,31 @@ export class EmailService {
    * Soporta: "gmail", "smtp", "resend" o "console".
    */
   static async send(options: SendEmailOptions): Promise<{ success: boolean; id?: string }> {
+    const driver = this.getDriver();
+    const from = this.getFrom();
+
     // 1. Integración con Gmail / SMTP mediante Nodemailer
-    if (this.driver === "gmail" || this.driver === "smtp") {
+    if (driver === "gmail" || driver === "smtp") {
       try {
         const transporter = this.getSmtpTransporter();
         const info = await transporter.sendMail({
-          from: this.from,
+          from,
           to: options.to,
           subject: options.subject,
           html: options.html,
           text: options.text,
         });
 
+        console.log(`[EmailService] Correo enviado exitosamente a ${options.to}. MessageId: ${info.messageId}`);
         return { success: true, id: info.messageId };
-      } catch (err) {
-        console.error(`Error al enviar email mediante ${this.driver}:`, err);
+      } catch (err: any) {
+        console.error(`[EmailService] Error al enviar email mediante ${driver}:`, err?.message || err);
         return { success: false };
       }
     }
 
     // 2. Integración con Resend si la clave está provista
-    if (this.driver === "resend" && process.env.RESEND_API_KEY) {
+    if (driver === "resend" && process.env.RESEND_API_KEY) {
       try {
         const resp = await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -75,7 +92,7 @@ export class EmailService {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            from: this.from,
+            from,
             to: options.to,
             subject: options.subject,
             html: options.html,
@@ -85,23 +102,23 @@ export class EmailService {
 
         if (!resp.ok) {
           const err = await resp.text();
-          console.error("Error al enviar email mediante Resend:", err);
+          console.error("[EmailService] Error al enviar email mediante Resend:", err);
           return { success: false };
         }
 
         const data = await resp.json();
         return { success: true, id: data.id };
       } catch (err) {
-        console.error("Excepción en EmailService (Resend):", err);
+        console.error("[EmailService] Excepción en Resend:", err);
         return { success: false };
       }
     }
 
-    // 3. Driver de consola (entorno de pruebas / desarrollo / sin credenciales externas)
+    // 3. Driver de consola (fallback cuando no hay credenciales)
     console.log("------------------------------------------------------------");
-    console.log(`[EMAIL DISPATCH - ${this.driver.toUpperCase()}]`);
+    console.log(`[EMAIL DISPATCH - CONSOLA (EMAIL_DRIVER no configurado o 'console')]`);
     console.log(`Para: ${options.to}`);
-    console.log(`De: ${this.from}`);
+    console.log(`De: ${from}`);
     console.log(`Asunto: ${options.subject}`);
     console.log(`Fecha: ${new Date().toISOString()}`);
     console.log("Cuerpo:");
@@ -123,7 +140,7 @@ export class EmailService {
     price: number;
     token: string;
   }) {
-    const magicLink = `${this.appUrl}/turno/${data.token}`;
+    const magicLink = `${this.getAppUrl()}/turno/${data.token}`;
     const subject = `Reserva recibida - Código ${data.publicCode}`;
     const html = `
       <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
@@ -171,7 +188,7 @@ export class EmailService {
     token: string;
     meetingUrl?: string | null;
   }) {
-    const magicLink = `${this.appUrl}/turno/${data.token}`;
+    const magicLink = `${this.getAppUrl()}/turno/${data.token}`;
     const subject = `Turno confirmado - Código ${data.publicCode}`;
     const html = `
       <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
@@ -204,7 +221,7 @@ export class EmailService {
     reason: string;
     token: string;
   }) {
-    const magicLink = `${this.appUrl}/turno/${data.token}`;
+    const magicLink = `${this.getAppUrl()}/turno/${data.token}`;
     const subject = `Observación sobre tu comprobante - Turno ${data.publicCode}`;
     const html = `
       <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
