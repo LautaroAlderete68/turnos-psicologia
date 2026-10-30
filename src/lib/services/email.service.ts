@@ -322,4 +322,46 @@ export class EmailService {
     `;
     return this.send({ to: data.to, subject, html });
   }
+
+  /**
+   * Notificación: Turno reprogramado exitosamente.
+   */
+  static async sendAppointmentRescheduled(data: {
+    to: string;
+    patientName: string;
+    publicCode: string;
+    oldDateTimeFormatted: string;
+    newDateTimeFormatted: string;
+    modality: string;
+    token: string;
+    meetingUrl?: string | null;
+  }) {
+    const magicLink = `${this.getAppUrl()}/turno/${data.token}`;
+    const subject = `Turno reprogramado - Código ${data.publicCode}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
+        <h2 style="color: #BE123C;">Tu turno ha sido reprogramado</h2>
+        <p>Hola <strong>${data.patientName}</strong>,</p>
+        <p>Te confirmamos que tu turno con código <strong>${data.publicCode}</strong> ha sido reprogramado con éxito.</p>
+        <div style="background-color: #F7FAFC; padding: 16px; border-radius: 6px; margin: 16px 0; border: 1px solid #E2E8F0;">
+          <p style="margin: 4px 0; color: #718096; text-decoration: line-through;"><strong>Horario anterior:</strong> ${data.oldDateTimeFormatted} hs</p>
+          <p style="margin: 8px 0 4px 0; color: #15803D; font-size: 15px;"><strong>Nuevo horario:</strong> ${data.newDateTimeFormatted} hs</p>
+          <p style="margin: 4px 0;"><strong>Modalidad:</strong> ${data.modality}</p>
+        </div>
+        ${
+          data.meetingUrl
+            ? `<div style="background-color: #FFF1F2; border: 1px solid #FECDD3; padding: 16px; border-radius: 6px; margin: 16px 0; text-align: center;">
+                 <p style="margin: 0 0 10px 0; font-weight: bold; color: #9F1239;">Enlace de la videollamada (Google Meet):</p>
+                 <a href="${data.meetingUrl}" style="background-color: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ingresar a Google Meet</a>
+                 <p style="margin: 8px 0 0 0; font-size: 12px; color: #718096;"><a href="${data.meetingUrl}" style="color: #718096;">${data.meetingUrl}</a></p>
+               </div>`
+            : ""
+        }
+        <p style="text-align: center; margin: 24px 0;">
+          <a href="${magicLink}" style="background-color: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ver los detalles actualizados de mi turno</a>
+        </p>
+      </div>
+    `;
+    return this.send({ to: data.to, subject, html });
+  }
 }

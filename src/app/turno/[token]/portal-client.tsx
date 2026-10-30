@@ -17,8 +17,28 @@ import {
   ShieldCheck,
   FileText,
   ExternalLink,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+  X,
 } from "lucide-react";
+import { format, addDays, startOfWeek, isBefore } from "date-fns";
+import { es } from "date-fns/locale";
 import { formatDateTimeArgentina } from "@/lib/timezone";
+
+interface TimeSlot {
+  time: string;
+  available: boolean;
+  reason?: string;
+}
+
+interface DayData {
+  date: string;
+  dayOfWeek: number;
+  isOpen: boolean;
+  closedReason?: string;
+  slots: TimeSlot[];
+}
 
 interface PortalClientProps {
   appointment: any;
@@ -35,19 +55,51 @@ export default function PatientPortalClient({
   const [copiedCbu, setCopiedCbu] = useState(false);
   const [copiedAlias, setCopiedAlias] = useState(false);
 
-  // Estado del uploader
+  // Estado del uploader de comprobante
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  // Cancelación
+  // Cancelación (solo turnos pendientes o con comprobante en revisión)
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
   const [cancelling, setCancelling] = useState(false);
 
-  // Contador de expiración
+  // Reprogramación (solo turnos confirmados con anticipación)
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [rescheduleWeekStart, setRescheduleWeekStart] = useState<Date>(() =>
+    startOfWeek(new Date(), { weekStartsOn: 1 })
+  );
+  const [rescheduleDaysData, setRescheduleDaysData] = useState<DayData[]>([]);
+  const [loadingRescheduleWeek, setLoadingRescheduleWeek] = useState(false);
+  const [selectedRescheduleDate, setSelectedRescheduleDate] = useState<string>("");
+  const [selectedRescheduleTime, setSelectedRescheduleTime] = useState<string>("");
+  const [rescheduleError, setRescheduleError] = useState<string | null>(null);
+  const [rescheduleSuccessMsg, setRescheduleSuccessMsg] = useState<string | null>(null);
+  const [rescheduling, setRescheduling] = useState(false);
+
+  // Contador de expiración si está pendiente de pago
   const [timeLeft, setTimeLeft] = useState<string | null>(null);
+
+  // Reglas de negocio sobre estados
+  const isConfirmed =
+    appointment.status === "CONFIRMADA" || appointment.payment?.status === "APROBADO";
+  const isUnconfirmed =
+    !isConfirmed &&
+    appointment.status !== "CANCELADA" &&
+    appointment.status !== "COMPLETADA";
+
+  // Anticipación en horas para reprogramar
+  const noticeHours = profile?.rescheduleNoticeHours ?? 24;
+  const nowMs = new Date().getTime();
+  const appointmentStartMs = new Date(appointment.startTime).getTime();
+  const hoursUntilAppointment = (appointmentStartMs - nowMs) / (1000 * 60 * 60);
+  const canReschedule =
+    isConfirmed &&
+    hoursUntilAppointment >= noticeHours &&
+    appointment.status !== "CANCELADA" &&
+    appointment.status !== "COMPLETADA";
 
   useEffect(() => {
     if (appointment.status !== "PENDIENTE_PAGO" || !appointment.expiresAt) {
@@ -101,24 +153,21 @@ export default function PatientPortalClient({
 
     try {
       const formData = new FormData();
-      formData.append("appointmentId", appointment.id);
-      formData.append("patientToken", token);
       formData.append("file", file);
+      formData.append("appointmentId", appointment.id);
+      formData.append("token", token);
 
       const res = await fetch("/api/proofs/upload", {
         method: "POST",
         body: formData,
       });
 
-      let data: any = null;
-      try {
-        data = await res.json();
-      } catch (jsonErr) {
-        console.error("No se pudo parsear respuesta JSON:", jsonErr);
-      }
+      const data = await res.json();
 
       if (!res.ok || !data?.success) {
-        setUploadError(data?.error || `Error del servidor (${res.status}): No se pudo procesar el comprobante.`);
+        setUploadError(
+          data?.error || `Error del servidor (${res.status}): No se pudo procesar el comprobante.`
+        );
         return;
       }
 
@@ -145,7 +194,9 @@ export default function PatientPortalClient({
       }));
     } catch (err: any) {
       console.error("Error al cargar comprobante:", err);
-      setUploadError(err?.message ? `Error de carga: ${err.message}` : "Error de conexión al cargar el archivo.");
+      setUploadError(
+        err?.message ? `Error de carga: ${err.message}` : "Error de conexión al cargar el archivo."
+      );
     } finally {
       setUploading(false);
     }
@@ -171,7 +222,7 @@ export default function PatientPortalClient({
       });
 
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.success) {
         setAppointment((prev: any) => ({
           ...prev,
           status: "CANCELADA",
@@ -188,43 +239,202 @@ export default function PatientPortalClient({
     }
   };
 
+  // Carga de disponibilidad para la modal de reprogramación
+  const loadRescheduleWeek = async (weekStart: Date) => {
+    setLoadingRescheduleWeek(true);
+    setRescheduleError(null);
+    const weekDays: string[] = [];
+    for (let i = 0; i < 7; i++) {
+      weekDays.push(format(addDays(weekStart, i), "yyyy-MM-dd"));
+    }
+
+    try {
+      const res = await fetch(`/api/availability?dates=${weekDays.join(",")}`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setRescheduleDaysData(data.days);
+        // Seleccionar primer día disponible si no hay fecha seleccionada en esta semana
+        const found = data.days.find(
+          (d: DayData) => d.isOpen && d.slots.some((s) => s.available)
+        );
+        if (found) {
+          setSelectedRescheduleDate(found.date);
+          setSelectedRescheduleTime("");
+        }
+      } else {
+        setRescheduleError(data.error || "No se pudo cargar la disponibilidad.");
+      }
+    } catch {
+      setRescheduleError("Error de conexión al cargar horarios.");
+    } finally {
+      setLoadingRescheduleWeek(false);
+    }
+  };
+
+  const handleOpenRescheduleModal = () => {
+    setShowRescheduleModal(true);
+    setRescheduleError(null);
+    loadRescheduleWeek(rescheduleWeekStart);
+  };
+
+  const handlePrevRescheduleWeek = () => {
+    const currentWeekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const newStart = addDays(rescheduleWeekStart, -7);
+    if (isBefore(newStart, currentWeekStart)) return;
+    setRescheduleWeekStart(newStart);
+    loadRescheduleWeek(newStart);
+  };
+
+  const handleNextRescheduleWeek = () => {
+    const newStart = addDays(rescheduleWeekStart, 7);
+    setRescheduleWeekStart(newStart);
+    loadRescheduleWeek(newStart);
+  };
+
+  const handleConfirmReschedule = async () => {
+    if (!selectedRescheduleDate || !selectedRescheduleTime) {
+      alert("Por favor seleccioná un día y un horario disponible.");
+      return;
+    }
+
+    setRescheduling(true);
+    setRescheduleError(null);
+
+    try {
+      const res = await fetch("/api/patient/reschedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          appointmentId: appointment.id,
+          token,
+          dateStr: selectedRescheduleDate,
+          timeStr: selectedRescheduleTime,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAppointment((prev: any) => ({
+          ...prev,
+          startTime: data.newStartTime,
+          endTime: data.newEndTime,
+        }));
+        setShowRescheduleModal(false);
+        setRescheduleSuccessMsg("¡Tu turno fue reprogramado con éxito!");
+        setTimeout(() => setRescheduleSuccessMsg(null), 8000);
+      } else {
+        setRescheduleError(data.error || "No se pudo reprogramar el turno.");
+      }
+    } catch {
+      setRescheduleError("Error al procesar la reprogramación.");
+    } finally {
+      setRescheduling(false);
+    }
+  };
+
   // Badges visuales
   const getReservationBadge = (status: string) => {
     switch (status) {
       case "CONFIRMADA":
-        return <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">Turno Confirmado</span>;
+        return (
+          <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">
+            Turno Confirmado
+          </span>
+        );
       case "COMPROBANTE_ENVIADO":
-        return <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">Comprobante en Revisión</span>;
+        return (
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+            Comprobante en Revisión
+          </span>
+        );
       case "PENDIENTE_PAGO":
-        return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Pendiente de Pago</span>;
+        return (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+            Pendiente de Pago
+          </span>
+        );
       case "CANCELADA":
-        return <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">Cancelado</span>;
+        return (
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-700">
+            Cancelado
+          </span>
+        );
       case "COMPLETADA":
-        return <span className="rounded-full bg-rose-200 px-3 py-1 text-xs font-semibold text-rose-900">Completado</span>;
+        return (
+          <span className="rounded-full bg-rose-200 px-3 py-1 text-xs font-semibold text-rose-900">
+            Completado
+          </span>
+        );
       case "AUSENTE":
-        return <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">Ausente</span>;
+        return (
+          <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
+            Ausente
+          </span>
+        );
       default:
-        return <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-800">{status}</span>;
+        return (
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-800">
+            {status}
+          </span>
+        );
     }
   };
 
   const getPaymentBadge = (status: string) => {
     switch (status) {
       case "APROBADO":
-        return <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">Pago Aprobado</span>;
+        return (
+          <span className="rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">
+            Pago Aprobado
+          </span>
+        );
       case "COMPROBANTE_RECIBIDO":
-        return <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">Comprobante Recibido</span>;
+        return (
+          <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+            Comprobante Recibido
+          </span>
+        );
       case "PENDIENTE":
-        return <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Pago Pendiente</span>;
+        return (
+          <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">
+            Pago Pendiente
+          </span>
+        );
       case "RECHAZADO":
-        return <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">Pago Rechazado</span>;
+        return (
+          <span className="rounded-full bg-red-100 px-3 py-1 text-xs font-semibold text-red-800">
+            Pago Rechazado
+          </span>
+        );
       default:
-        return <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-800">{status}</span>;
+        return (
+          <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-800">
+            {status}
+          </span>
+        );
     }
   };
 
+  const selectedDayData = rescheduleDaysData.find((d) => d.date === selectedRescheduleDate);
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+      {/* Alerta de reprogramación exitosa */}
+      {rescheduleSuccessMsg && (
+        <div className="mb-6 flex items-center justify-between rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-emerald-900 shadow-xs">
+          <div className="flex items-center gap-2">
+            <Check className="h-5 w-5 text-emerald-600" />
+            <span className="text-sm font-semibold">{rescheduleSuccessMsg}</span>
+          </div>
+          <button
+            onClick={() => setRescheduleSuccessMsg(null)}
+            className="text-emerald-700 hover:text-emerald-900"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Encabezado del turno */}
       <div className="rounded-2xl border border-warm-200 bg-white p-6 shadow-xs sm:p-8">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -312,6 +522,7 @@ export default function PatientPortalClient({
             </div>
           </div>
         </div>
+
         {/* Banner de Acceso a Sesión Virtual */}
         {appointment.modality === "VIRTUAL" && appointment.meetingUrl && (
           <div className="mt-6 rounded-2xl border border-rose-200 bg-rose-50/70 p-5 text-center sm:text-left sm:flex sm:items-center sm:justify-between sm:gap-4">
@@ -333,6 +544,46 @@ export default function PatientPortalClient({
               <span>Ingresar a Google Meet</span>
               <ExternalLink className="h-4 w-4" />
             </a>
+          </div>
+        )}
+
+        {/* ================================================================= */}
+        {/* SECCIÓN DE GESTIÓN: REPROGRAMACIÓN PARA TURNOS CONFIRMADOS */}
+        {/* ================================================================= */}
+        {isConfirmed && appointment.status !== "CANCELADA" && appointment.status !== "COMPLETADA" && (
+          <div className="mt-6 rounded-2xl border border-warm-200 bg-warm-50/80 p-5 sm:flex sm:items-center sm:justify-between sm:gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                <Calendar className="h-4 w-4 text-sage-700" />
+                <span>Reprogramación de Turno</span>
+              </h3>
+              <p className="mt-1 text-xs text-gray-600 max-w-xl">
+                {canReschedule ? (
+                  <>
+                    Podés cambiar la fecha y horario de tu sesión respetando el plazo de anticipación
+                    mínima de <strong>{noticeHours} horas</strong>.
+                  </>
+                ) : (
+                  <>
+                    Este turno no puede reprogramarse desde el portal porque restan menos de{" "}
+                    <strong>{noticeHours} horas</strong> para el horario pautado. Para emergencias o
+                    consultas, comunicate directamente por WhatsApp.
+                  </>
+                )}
+              </p>
+            </div>
+
+            <div className="mt-4 sm:mt-0 shrink-0">
+              <button
+                type="button"
+                disabled={!canReschedule}
+                onClick={handleOpenRescheduleModal}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-xs transition hover:bg-rose-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed active:scale-95"
+              >
+                <RefreshCw className="h-4 w-4" />
+                <span>Reprogramar Turno</span>
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -501,8 +752,8 @@ export default function PatientPortalClient({
             )}
           </div>
 
-          {/* Botón de Cancelación */}
-          {appointment.status !== "CANCELADA" && appointment.status !== "COMPLETADA" && (
+          {/* Botón de Cancelación: SÓLO visible si aún no se ha confirmado el pago */}
+          {isUnconfirmed && (
             <div className="mt-6 border-t border-warm-200 pt-4 text-right">
               <button
                 type="button"
@@ -516,8 +767,194 @@ export default function PatientPortalClient({
         </div>
       </div>
 
-      {/* Modal de Cancelación */}
-      {showCancelModal && (
+      {/* ===================================================================== */}
+      {/* MODAL DE REPROGRAMACIÓN DE TURNO */}
+      {/* ===================================================================== */}
+      {showRescheduleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-warm-200 pb-3">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Reprogramar Turno</h3>
+                <p className="text-xs text-gray-500">
+                  Seleccioná una nueva fecha y horario disponible para tu sesión.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRescheduleModal(false)}
+                className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {rescheduleError && (
+              <div className="mt-4 flex items-start gap-2 rounded-xl bg-red-50 p-3.5 text-xs text-red-800 border border-red-200">
+                <AlertCircle className="h-4 w-4 shrink-0 text-red-600 mt-0.5" />
+                <span>{rescheduleError}</span>
+              </div>
+            )}
+
+            {/* Navegación de Semanas */}
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-warm-50 p-3">
+              <button
+                type="button"
+                onClick={handlePrevRescheduleWeek}
+                disabled={isBefore(
+                  addDays(rescheduleWeekStart, -7),
+                  startOfWeek(new Date(), { weekStartsOn: 1 })
+                )}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                <span className="hidden sm:inline">Semana anterior</span>
+              </button>
+
+              <span className="text-xs sm:text-sm font-bold text-sage-950">
+                Semana del {format(rescheduleWeekStart, "d 'de' MMMM", { locale: es })}
+              </span>
+
+              <button
+                type="button"
+                onClick={handleNextRescheduleWeek}
+                className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-2xs hover:bg-gray-50"
+              >
+                <span className="hidden sm:inline">Próxima semana</span>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Selector de Días de la Semana */}
+            {loadingRescheduleWeek ? (
+              <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+                <Loader2 className="h-8 w-8 animate-spin text-sage-600" />
+                <span className="mt-2 text-xs">Consultando disponibilidad...</span>
+              </div>
+            ) : (
+              <div className="mt-4">
+                <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                  {rescheduleDaysData.map((d) => {
+                    const dayDate = new Date(`${d.date}T12:00:00`);
+                    const isSelected = selectedRescheduleDate === d.date;
+                    const hasAvailable = d.isOpen && d.slots.some((s) => s.available);
+
+                    return (
+                      <button
+                        key={d.date}
+                        type="button"
+                        disabled={!d.isOpen || !hasAvailable}
+                        onClick={() => {
+                          setSelectedRescheduleDate(d.date);
+                          setSelectedRescheduleTime("");
+                        }}
+                        className={`flex flex-col items-center rounded-xl p-2 sm:p-2.5 transition text-center border ${
+                          isSelected
+                            ? "border-rose-600 bg-rose-50 text-rose-950 shadow-xs"
+                            : hasAvailable
+                            ? "border-gray-200 bg-white hover:border-sage-400 text-gray-800"
+                            : "border-gray-100 bg-gray-50/70 text-gray-400 cursor-not-allowed"
+                        }`}
+                      >
+                        <span className="text-[10px] uppercase font-semibold text-gray-500">
+                          {format(dayDate, "EEE", { locale: es })}
+                        </span>
+                        <span className="text-sm sm:text-base font-bold my-0.5">
+                          {format(dayDate, "d")}
+                        </span>
+                        <span className="text-[9px] text-gray-400">
+                          {format(dayDate, "MMM", { locale: es })}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Horarios disponibles para el día seleccionado */}
+                <div className="mt-6 border-t border-warm-200 pt-4">
+                  <h4 className="text-xs font-bold text-gray-800 mb-2">
+                    {selectedRescheduleDate ? (
+                      <>
+                        Horarios disponibles para el{" "}
+                        {format(new Date(`${selectedRescheduleDate}T12:00:00`), "EEEE d 'de' MMMM", {
+                          locale: es,
+                        })}
+                        :
+                      </>
+                    ) : (
+                      "Seleccioná un día para ver los horarios disponibles"
+                    )}
+                  </h4>
+
+                  {selectedDayData && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 mt-3">
+                      {selectedDayData.slots.map((slot) => {
+                        const isChosen = selectedRescheduleTime === slot.time;
+                        return (
+                          <button
+                            key={slot.time}
+                            type="button"
+                            disabled={!slot.available}
+                            onClick={() => setSelectedRescheduleTime(slot.time)}
+                            className={`rounded-xl py-2 px-3 text-xs font-bold transition border ${
+                              isChosen
+                                ? "bg-rose-600 text-white border-rose-600 shadow-sm"
+                                : slot.available
+                                ? "bg-white text-gray-800 border-gray-200 hover:border-sage-500 hover:bg-sage-50"
+                                : "bg-gray-100 text-gray-400 border-gray-100 cursor-not-allowed line-through"
+                            }`}
+                          >
+                            {slot.time} hs
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {selectedDayData && selectedDayData.slots.filter((s) => s.available).length === 0 && (
+                    <p className="mt-4 text-center text-xs text-gray-500">
+                      No quedan horarios libres para este día. Por favor seleccioná otra fecha.
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-8 flex items-center justify-end gap-2 border-t border-warm-200 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowRescheduleModal(false)}
+                className="rounded-xl border border-gray-200 px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={!selectedRescheduleDate || !selectedRescheduleTime || rescheduling}
+                onClick={handleConfirmReschedule}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-5 py-2 text-xs sm:text-sm font-bold text-white shadow-xs hover:bg-rose-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
+              >
+                {rescheduling ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Reprogramando...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" />
+                    <span>Confirmar Reprogramación</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================================================================== */}
+      {/* MODAL DE CANCELACIÓN (Solo disponible si no se ha pagado aún) */}
+      {/* ===================================================================== */}
+      {showCancelModal && isUnconfirmed && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
             <h3 className="text-lg font-bold text-gray-900">¿Deseás cancelar tu turno?</h3>

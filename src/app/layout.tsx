@@ -2,17 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Calendar, Shield, HeartHandshake, User } from "lucide-react";
 import "./globals.css";
+import prisma from "@/lib/prisma";
+import { FloatingWhatsApp } from "@/components/whatsapp-button";
 
 export const metadata: Metadata = {
   title: "Consultorio Psicológico | Turnos Online",
   description: "Plataforma de gestión y reserva de turnos online para atención psicológica presencial y virtual.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const profile = await prisma.psychologistProfile.findFirst({
+    select: { phone: true },
+  }).catch(() => null);
   return (
     <html lang="es" className="h-full">
       <body className="flex min-h-full flex-col bg-[#FDFAFB] text-gray-800 antialiased">
@@ -87,6 +92,7 @@ export default function RootLayout({
             </div>
           </div>
         </footer>
+        <FloatingWhatsApp phone={profile?.phone} />
       </body>
     </html>
   );

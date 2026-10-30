@@ -55,6 +55,7 @@ export async function PUT(req: NextRequest) {
             bufferMinutes: Number(profileData.bufferMinutes),
             minNoticeMinutes: profileData.minNoticeMinutes !== undefined ? Number(profileData.minNoticeMinutes) : (profileData.minNoticeHours ? Number(profileData.minNoticeHours) * 60 : 30),
             minNoticeHours: profileData.minNoticeMinutes !== undefined ? Math.ceil(Number(profileData.minNoticeMinutes) / 60) : Number(profileData.minNoticeHours || 1),
+            rescheduleNoticeHours: profileData.rescheduleNoticeHours !== undefined ? Number(profileData.rescheduleNoticeHours) : 24,
             maxAdvanceDays: Number(profileData.maxAdvanceDays),
             pendingExpirationMinutes: Number(profileData.pendingExpirationMinutes),
             bankAccountHolder: profileData.bankAccountHolder,

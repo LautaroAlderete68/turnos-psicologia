@@ -3,6 +3,7 @@ import crypto from "crypto";
 import prisma from "../prisma";
 import { argentinaTimeToUtc, isPastUtc, formatDateTimeArgentina } from "../timezone";
 import { hashToken, generateRawToken } from "../patient-auth";
+import { EmailService } from "./email.service";
 
 export class SlotUnavailableError extends Error {
   constructor(message = "El horario seleccionado ya no se encuentra disponible.") {
@@ -276,5 +277,172 @@ export class AppointmentService {
     });
 
     return true;
+  }
+
+  /**
+   * Permite reprogramar un turno confirmado respetando la anticipación mínima en horas.
+   */
+  static async rescheduleAppointment(input: {
+    appointmentId: string;
+    token: string;
+    dateStr: string; // "YYYY-MM-DD"
+    timeStr: string; // "14:00"
+  }): Promise<{ success: boolean; newStartTime: Date; newEndTime: Date }> {
+    const { appointmentId, token, dateStr, timeStr } = input;
+
+    // 1. Validar turno y token de acceso del paciente
+    const appointment = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      include: {
+        patient: true,
+        payment: true,
+        accessTokens: {
+          orderBy: { createdAt: "desc" },
+        },
+      },
+    });
+
+    if (!appointment) {
+      throw new Error("Turno no encontrado.");
+    }
+
+    const hashedInputToken = hashToken(token);
+    const validToken = appointment.accessTokens.find(
+      (t) => t.tokenHash === hashedInputToken && t.expiresAt > new Date()
+    );
+
+    if (!validToken) {
+      throw new Error("Acceso no autorizado o enlace de turno expirado.");
+    }
+
+    // 2. Solo turnos CONFIRMADOS pueden ser reprogramados
+    if (appointment.status !== "CONFIRMADA" && appointment.payment?.status !== "APROBADO") {
+      throw new Error("Solo los turnos confirmados pueden ser reprogramados.");
+    }
+
+    const profile = await prisma.psychologistProfile.findFirst();
+    if (!profile) {
+      throw new Error("Perfil profesional no configurado.");
+    }
+
+    const now = new Date();
+
+    // 3. Verificar anticipación mínima para reprogramar (en horas)
+    const noticeHours = profile.rescheduleNoticeHours ?? 24;
+    const msUntilAppointment = appointment.startTime.getTime() - now.getTime();
+    const hoursUntil = msUntilAppointment / (1000 * 60 * 60);
+
+    if (hoursUntil < noticeHours) {
+      throw new Error(
+        `Las reprogramaciones deben realizarse con al menos ${noticeHours} horas de anticipación según las políticas del consultorio.`
+      );
+    }
+
+    // 4. Calcular nuevo horario en UTC
+    const newStartTimeUtc = argentinaTimeToUtc(dateStr, timeStr);
+    const newEndTimeUtc = addMinutes(newStartTimeUtc, profile.sessionDuration);
+
+    if (isPastUtc(newStartTimeUtc)) {
+      throw new Error("No se puede reprogramar a una fecha u horario pasado.");
+    }
+
+    // Anticipación mínima para el nuevo horario
+    const minNoticeMins = profile.minNoticeMinutes ?? (profile.minNoticeHours ? profile.minNoticeHours * 60 : 30);
+    const minNoticeLimit = addMinutes(now, minNoticeMins);
+    if (newStartTimeUtc < minNoticeLimit) {
+      const noticeText = minNoticeMins >= 60 ? `${Math.round(minNoticeMins / 60)} hora(s)` : `${minNoticeMins} minutos`;
+      throw new Error(`El nuevo horario debe tener al menos ${noticeText} de anticipación.`);
+    }
+
+    // 5. Transacción de reprogramación con verificación de colisiones
+    await prisma.$transaction(async (tx) => {
+      // Verificar bloqueos
+      const blockConflict = await tx.scheduleBlock.findFirst({
+        where: {
+          startTime: { lt: newEndTimeUtc },
+          endTime: { gt: newStartTimeUtc },
+        },
+      });
+
+      if (blockConflict) {
+        throw new SlotUnavailableError("El nuevo horario seleccionado se encuentra bloqueado por la profesional.");
+      }
+
+      // Verificar conflictos de turno con otras reservas (excluyendo este turno)
+      const conflict = await tx.appointment.findFirst({
+        where: {
+          id: { not: appointment.id },
+          startTime: { lt: newEndTimeUtc },
+          endTime: { gt: newStartTimeUtc },
+          OR: [
+            {
+              status: { in: ["CONFIRMADA", "PAGO_CONFIRMADO", "COMPROBANTE_ENVIADO"] },
+            },
+            {
+              status: "PENDIENTE_PAGO",
+              expiresAt: { gt: now },
+            },
+          ],
+        },
+      });
+
+      if (conflict) {
+        throw new SlotUnavailableError("El nuevo horario seleccionado ya no está disponible.");
+      }
+
+      // Actualizar turno
+      await tx.appointment.update({
+        where: { id: appointment.id },
+        data: {
+          startTime: newStartTimeUtc,
+          endTime: newEndTimeUtc,
+        },
+      });
+
+      // Registrar en auditoría
+      await tx.auditLog.create({
+        data: {
+          action: "APPOINTMENT_RESCHEDULED",
+          entity: "Appointment",
+          entityId: appointment.id,
+          performedBy: `PATIENT:${appointment.publicCode}`,
+          details: JSON.stringify({
+            previousStart: appointment.startTime,
+            newStart: newStartTimeUtc,
+            previousEnd: appointment.endTime,
+            newEnd: newEndTimeUtc,
+          }),
+        },
+      });
+    });
+
+    // Enviar correo de notificación
+    try {
+      const oldFormatted = formatDateTimeArgentina(appointment.startTime);
+      const newFormatted = formatDateTimeArgentina(newStartTimeUtc);
+      const modalityText =
+        appointment.modality === "PRESENCIAL"
+          ? "Presencial en consultorio"
+          : "Atención Virtual (Google Meet)";
+
+      await EmailService.sendAppointmentRescheduled({
+        to: appointment.patient.email,
+        patientName: appointment.patient.fullName,
+        publicCode: appointment.publicCode,
+        oldDateTimeFormatted: oldFormatted,
+        newDateTimeFormatted: newFormatted,
+        modality: modalityText,
+        token,
+        meetingUrl: appointment.meetingUrl,
+      });
+    } catch (emailErr) {
+      console.error("Error al enviar email de reprogramación:", emailErr);
+    }
+
+    return {
+      success: true,
+      newStartTime: newStartTimeUtc,
+      newEndTime: newEndTimeUtc,
+    };
   }
 }

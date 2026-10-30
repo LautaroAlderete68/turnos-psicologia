@@ -42,6 +42,7 @@ model PsychologistProfile {
   bufferMinutes            Int      @default(10)
   minNoticeMinutes         Int?     @default(30)
   minNoticeHours           Int      @default(1)
+  rescheduleNoticeHours    Int?     @default(24)
   maxAdvanceDays           Int      @default(30)
   pendingExpirationMinutes Int      @default(120)
   bankAccountHolder        String   @default("Lic. Psicóloga")

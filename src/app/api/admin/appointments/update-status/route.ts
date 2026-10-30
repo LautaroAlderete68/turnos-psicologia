@@ -23,6 +23,16 @@ export async function POST(req: NextRequest) {
     if (!isAuthorized && token && status === "CANCELADA") {
       const validApp = await validatePatientToken(token);
       if (validApp && validApp.id === appointmentId) {
+        if (validApp.status === "CONFIRMADA" || validApp.payment?.status === "APROBADO") {
+          return NextResponse.json(
+            {
+              success: false,
+              error:
+                "Los turnos confirmados no pueden cancelarse directamente; deben reprogramarse según las políticas del consultorio.",
+            },
+            { status: 400 }
+          );
+        }
         isAuthorized = true;
         performedBy = `PATIENT:${validApp.publicCode}`;
       }

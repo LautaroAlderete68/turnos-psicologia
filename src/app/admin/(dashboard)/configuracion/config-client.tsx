@@ -270,7 +270,24 @@ export default function AdminConfigClient({
               className="mt-1 w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-sage-600"
             />
             <span className="mt-1 text-[11px] text-gray-500 block">
-              Tiempo previo mínimo con el que un paciente puede tomar un turno (por defecto 30 minutos).
+              Tiempo previo mínimo para tomar un turno (por defecto 30 minutos).
+            </span>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-gray-700">
+              Anticipación Mínima para Reprogramar (Horas)
+            </label>
+            <input
+              type="number"
+              required
+              min={0}
+              value={profile.rescheduleNoticeHours !== undefined ? profile.rescheduleNoticeHours : 24}
+              onChange={(e) => handleProfileChange("rescheduleNoticeHours", Number(e.target.value))}
+              className="mt-1 w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-sage-600"
+            />
+            <span className="mt-1 text-[11px] text-gray-500 block">
+              Tiempo previo con el que el paciente puede reprogramar un turno confirmado (ej. 24 hs).
             </span>
           </div>
 
