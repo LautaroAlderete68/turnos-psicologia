@@ -161,36 +161,9 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Información de Medios de Pago y Políticas */}
-      <section className="mt-16 grid gap-6 md:grid-cols-2">
-        {/* Medios de Pago */}
-        <div className="rounded-2xl border border-warm-200 bg-white p-6 sm:p-8">
-          <div className="flex items-center gap-2 text-sage-800">
-            <CreditCard className="h-5 w-5 text-rose-600" />
-            <h3 className="text-lg font-bold">Medios de Pago e Instrucciones</h3>
-          </div>
-          <p className="mt-3 text-sm text-gray-600">{paymentInstructions}</p>
-
-          <div className="mt-6 rounded-xl bg-warm-50 p-4 text-xs sm:text-sm">
-            <div className="grid gap-2">
-              <div>
-                <span className="font-medium text-gray-500">Banco:</span>{" "}
-                <span className="font-semibold text-gray-900">{bankName}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-500">Alias:</span>{" "}
-                <span className="font-mono font-bold text-sage-900">{bankAlias}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-500">CBU / CVU:</span>{" "}
-                <span className="font-mono text-gray-800">{bankCbu}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Políticas y Contacto */}
-        <div className="flex flex-col justify-between rounded-2xl border border-warm-200 bg-white p-6 sm:p-8">
+      {/* Políticas y Contacto */}
+      <section className="mt-16 max-w-2xl mx-auto">
+        <div className="flex flex-col justify-between rounded-2xl border border-warm-200 bg-white p-6 sm:p-8 shadow-xs">
           <div>
             <div className="flex items-center gap-2 text-sage-800">
               <CheckCircle2 className="h-5 w-5 text-rose-600" />

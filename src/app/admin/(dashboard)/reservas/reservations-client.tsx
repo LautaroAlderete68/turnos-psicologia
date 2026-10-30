@@ -27,7 +27,7 @@ export default function AdminReservationsClient({
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("TODOS");
   const [modalityFilter, setModalityFilter] = useState("TODAS");
-  const [timeFilter, setTimeFilter] = useState("FUTUROS"); // "FUTUROS" | "TODOS" | "PASADOS"
+  const [hidePast, setHidePast] = useState(true);
   const todayStr = useMemo(() => getArgentinaDateString(new Date()), []);
 
   // Modal de edición de turno
@@ -50,9 +50,13 @@ export default function AdminReservationsClient({
       const matchStatus = statusFilter === "TODOS" || app.status === statusFilter;
       const matchModality = modalityFilter === "TODAS" || app.modality === modalityFilter;
 
+      if (hidePast && getArgentinaDateString(app.startTime) < todayStr) {
+        return false;
+      }
+
       return matchSearch && matchStatus && matchModality;
     });
-  }, [appointments, searchTerm, statusFilter, modalityFilter]);
+  }, [appointments, searchTerm, statusFilter, modalityFilter, hidePast, todayStr]);
 
   const openEditModal = (app: any) => {
     setSelectedApp(app);
@@ -132,6 +136,16 @@ export default function AdminReservationsClient({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 select-none shadow-2xs">
+            <input
+              type="checkbox"
+              checked={hidePast}
+              onChange={(e) => setHidePast(e.target.checked)}
+              className="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500 accent-rose-600"
+            />
+            <span>Ocultar fechas pasadas</span>
+          </label>
+
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -177,7 +191,11 @@ export default function AdminReservationsClient({
               {filteredAppointments.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-gray-400">
-                    No se encontraron reservas con los filtros aplicados.
+                    No se encontraron reservas con los filtros aplicados.{hidePast && (
+                      <span className="block mt-1 text-xs text-gray-500">
+                        (Las fechas pasadas están ocultas. Desmarcá el filtro &quot;Ocultar fechas pasadas&quot; para visualizarlas).
+                      </span>
+                    )}
                   </td>
                 </tr>
               ) : (

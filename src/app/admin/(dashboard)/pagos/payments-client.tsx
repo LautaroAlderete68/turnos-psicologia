@@ -34,12 +34,24 @@ export default function AdminPaymentsClient({
 
   // Filtro de historial
   const [filterStatus, setFilterStatus] = useState("TODOS");
+  const [hidePast, setHidePast] = useState(true);
+  const todayStr = useMemo(() => getArgentinaDateString(new Date()), []);
 
-  const pendingPayments = payments.filter((p) => p.status === "COMPROBANTE_RECIBIDO");
-  const filteredHistory = payments.filter((p) => {
-    if (filterStatus === "TODOS") return true;
-    return p.status === filterStatus;
-  });
+  const pendingPayments = useMemo(() => {
+    return payments.filter((p) => {
+      if (p.status !== "COMPROBANTE_RECIBIDO") return false;
+      if (hidePast && getArgentinaDateString(p.appointment.startTime) < todayStr) return false;
+      return true;
+    });
+  }, [payments, hidePast, todayStr]);
+
+  const filteredHistory = useMemo(() => {
+    return payments.filter((p) => {
+      if (filterStatus !== "TODOS" && p.status !== filterStatus) return false;
+      if (hidePast && getArgentinaDateString(p.appointment.startTime) < todayStr) return false;
+      return true;
+    });
+  }, [payments, filterStatus, hidePast, todayStr]);
 
   const handleApprove = async (paymentId: string) => {
     if (!confirm("¿Aprobar el pago y confirmar definitivamente el turno del paciente?")) return;
@@ -131,13 +143,24 @@ export default function AdminPaymentsClient({
   return (
     <div className="space-y-8">
       {/* Encabezado */}
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-          Validación de Comprobantes y Pagos
-        </h1>
-        <p className="mt-1 text-sm text-gray-500">
-          Revisá las transferencias adjuntas por los pacientes, aprobá o rechazá con motivo.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+            Validación de Comprobantes y Pagos
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Revisá las transferencias adjuntas por los pacientes, aprobá o rechazá con motivo.
+          </p>
+        </div>
+        <label className="inline-flex items-center gap-2 cursor-pointer bg-white px-3.5 py-2 rounded-xl border border-gray-200 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 select-none shadow-2xs shrink-0 self-start sm:self-auto">
+          <input
+            type="checkbox"
+            checked={hidePast}
+            onChange={(e) => setHidePast(e.target.checked)}
+            className="h-4 w-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500 accent-rose-600"
+          />
+          <span>Ocultar fechas pasadas</span>
+        </label>
       </div>
 
       {/* BANDEJA: Comprobantes Pendientes de Revisión */}
@@ -158,7 +181,11 @@ export default function AdminPaymentsClient({
 
         {pendingPayments.length === 0 ? (
           <div className="py-12 text-center text-sm text-gray-400">
-            No hay comprobantes pendientes en este momento.
+            No hay comprobantes pendientes en este momento.{hidePast && (
+              <span className="block mt-1 text-xs text-gray-500">
+                (Las fechas pasadas están ocultas. Desmarcá el filtro &quot;Ocultar fechas pasadas&quot; para visualizarlas).
+              </span>
+            )}
           </div>
         ) : (
           <div className="mt-4 grid gap-4 md:grid-cols-2">
@@ -244,8 +271,19 @@ export default function AdminPaymentsClient({
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-warm-200 pb-4">
           <h2 className="text-base font-bold text-gray-900">Historial de Cobros</h2>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-500">Filtrar estado:</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="inline-flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 select-none shadow-2xs">
+              <input
+                type="checkbox"
+                checked={hidePast}
+                onChange={(e) => setHidePast(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-gray-300 text-rose-600 focus:ring-rose-500 accent-rose-600"
+              />
+              <span>Ocultar fechas pasadas</span>
+            </label>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-gray-500">Filtrar estado:</span>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
@@ -257,6 +295,7 @@ export default function AdminPaymentsClient({
               <option value="COMPROBANTE_RECIBIDO">En revisión</option>
               <option value="PENDIENTE">Pendientes</option>
             </select>
+          </div>
           </div>
         </div>
 
@@ -273,7 +312,19 @@ export default function AdminPaymentsClient({
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filteredHistory.map((p) => {
+              {filteredHistory.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-gray-400">
+                    No hay registros de cobros con los filtros aplicados.
+                    {hidePast && (
+                      <span className="block mt-1 text-xs text-gray-500">
+                        (Las fechas pasadas están ocultas. Desmarcá el filtro &quot;Ocultar fechas pasadas&quot; para visualizarlas).
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ) : (
+                filteredHistory.map((p) => {
                 const proof = p.proofs[0];
                 return (
                   <tr key={p.id} className="hover:bg-warm-50/50">
@@ -329,7 +380,7 @@ export default function AdminPaymentsClient({
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
