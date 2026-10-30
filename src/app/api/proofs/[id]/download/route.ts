@@ -41,6 +41,17 @@ export async function GET(
       );
     }
 
+    const etag = `"${proof.id}-${proof.sizeBytes}"`;
+    if (req.headers.get("if-none-match") === etag) {
+      return new NextResponse(null, {
+        status: 304,
+        headers: {
+          "Cache-Control": "private, max-age=86400, stale-while-revalidate=3600",
+          ETag: etag,
+        },
+      });
+    }
+
     const fileBuffer = proof.dataBuffer || (await storageProvider.get(proof.storageKey));
     if (!fileBuffer) {
       return NextResponse.json(
@@ -57,7 +68,8 @@ export async function GET(
     headers.set("Content-Type", mimeType);
     headers.set("Content-Length", (fileBuffer.byteLength || (fileBuffer as any).length || proof.sizeBytes).toString());
     headers.set("Content-Disposition", `inline; filename="${safeFilename}"; filename*=UTF-8''${encodeURIComponent(safeFilename)}`);
-    headers.set("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    headers.set("Cache-Control", "private, max-age=86400, stale-while-revalidate=3600");
+    headers.set("ETag", etag);
     headers.set("X-Frame-Options", "SAMEORIGIN");
     headers.set("Content-Security-Policy", "frame-ancestors 'self'");
 

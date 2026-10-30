@@ -25,6 +25,7 @@ import {
 import { format, addDays, startOfWeek, isBefore } from "date-fns";
 import { es } from "date-fns/locale";
 import { formatDateTimeArgentina } from "@/lib/timezone";
+import { compressImageFile } from "@/lib/client-compress";
 
 interface TimeSlot {
   time: string;
@@ -152,9 +153,13 @@ export default function PatientPortalClient({
     setUploadSuccess(false);
 
     try {
+      // Optimizar compresión en el cliente para reducir transferencia y consumo
+      const optimizedFile = await compressImageFile(file);
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", optimizedFile);
       formData.append("appointmentId", appointment.id);
+      formData.append("patientToken", token);
       formData.append("token", token);
 
       const res = await fetch("/api/proofs/upload", {
@@ -186,7 +191,7 @@ export default function PatientPortalClient({
               id: data.data.proofId,
               mimeType: data.data.mimeType,
               uploadedAt: data.data.uploadedAt,
-              originalFilename: file.name,
+              originalFilename: optimizedFile.name,
             },
             ...(prev.payment?.proofs || []),
           ],

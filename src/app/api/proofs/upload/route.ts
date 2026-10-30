@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const appointmentId = formData.get("appointmentId") as string;
-    const patientToken = formData.get("patientToken") as string;
+    const patientToken = (formData.get("patientToken") || formData.get("token")) as string;
     const file = formData.get("file") as File | null;
 
     if (!appointmentId || !patientToken || !file) {
