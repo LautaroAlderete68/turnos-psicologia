@@ -41,15 +41,19 @@ export async function POST(req: NextRequest) {
     const dateTimeFormatted = formatDateTimeArgentina(
       argentinaTimeToUtc(validated.dateStr, validated.timeStr)
     );
-    EmailService.sendBookingCreated({
-      to: validated.email,
-      patientName: validated.fullName,
-      publicCode: result.publicCode,
-      dateTimeFormatted,
-      modality: validated.modality === "PRESENCIAL" ? "Presencial en consultorio" : "Atención virtual",
-      price: result.price,
-      token: result.token,
-    }).catch((err) => console.error("Error al despachar email de reserva:", err));
+    try {
+      await EmailService.sendBookingCreated({
+        to: validated.email,
+        patientName: validated.fullName,
+        publicCode: result.publicCode,
+        dateTimeFormatted,
+        modality: validated.modality === "PRESENCIAL" ? "Presencial en consultorio" : "Atención virtual",
+        price: result.price,
+        token: result.token,
+      });
+    } catch (err) {
+      console.error("[Appointments API] Error al despachar email de reserva:", err);
+    }
 
     return NextResponse.json({
       success: true,
