@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminSession } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { argentinaTimeToUtc } from "@/lib/timezone";
+import { addMinutes } from "date-fns";
 
 export async function GET() {
   try {
@@ -20,20 +22,77 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const admin = await requireAdminSession();
-    const { startTime, endTime, reason } = await req.json();
+    const body = await req.json();
+    const { dateStr, startTimeStr, endTimeStr, wholeDay, startTime, endTime, reason } = body;
 
-    if (!startTime || !endTime || !reason) {
+    const finalReason = (reason || "").trim() || "Horario no laborable / Bloqueado";
+
+    let startUtc: Date;
+    let endUtc: Date;
+
+    if (wholeDay && dateStr) {
+      // Bloqueo de día completo: desde las 00:00:00 de Argentina hasta las 23:59:59 (00:00 del día siguiente)
+      startUtc = argentinaTimeToUtc(dateStr, "00:00");
+      endUtc = addMinutes(argentinaTimeToUtc(dateStr, "23:59"), 1);
+    } else if (dateStr && startTimeStr && endTimeStr) {
+      // Bloqueo por fecha y horarios locales de Argentina
+      startUtc = argentinaTimeToUtc(dateStr, startTimeStr);
+      endUtc = argentinaTimeToUtc(dateStr, endTimeStr);
+    } else if (startTime && endTime) {
+      // Compatibilidad con ISO string
+      if (
+        typeof startTime === "string" &&
+        startTime.includes("T") &&
+        !startTime.endsWith("Z") &&
+        !startTime.includes("+") &&
+        !startTime.includes("-", 10)
+      ) {
+        // String ISO local sin zona: ej "2026-10-30T09:00:00"
+        const [d, t] = startTime.split("T");
+        const [, tEnd] = endTime.split("T");
+        startUtc = argentinaTimeToUtc(d, t.slice(0, 5));
+        endUtc = argentinaTimeToUtc(d, tEnd.slice(0, 5));
+      } else {
+        startUtc = new Date(startTime);
+        endUtc = new Date(endTime);
+      }
+    } else {
       return NextResponse.json(
-        { success: false, error: "Se requiere startTime, endTime y motivo del bloqueo." },
+        { success: false, error: "Parámetros de fecha/horario insuficientes para crear el bloqueo." },
+        { status: 400 }
+      );
+    }
+
+    if (isNaN(startUtc.getTime()) || isNaN(endUtc.getTime()) || startUtc >= endUtc) {
+      return NextResponse.json(
+        { success: false, error: "Rango de horario inválido (el inicio debe ser anterior al fin)." },
+        { status: 400 }
+      );
+    }
+
+    // Verificar si ya existe un bloqueo idéntico o que se superponga
+    const existingBlock = await prisma.scheduleBlock.findFirst({
+      where: {
+        startTime: { lt: endUtc },
+        endTime: { gt: startUtc },
+      },
+    });
+
+    if (existingBlock) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Ya existe un bloqueo que se superpone con este horario o el día ya se encuentra bloqueado.",
+        },
         { status: 400 }
       );
     }
 
     const block = await prisma.scheduleBlock.create({
       data: {
-        startTime: new Date(startTime),
-        endTime: new Date(endTime),
-        reason: reason.trim(),
+        startTime: startUtc,
+        endTime: endUtc,
+        reason: finalReason,
       },
     });
 
@@ -43,7 +102,7 @@ export async function POST(req: NextRequest) {
         entity: "ScheduleBlock",
         entityId: block.id,
         performedBy: `ADMIN:${admin.sub}`,
-        details: JSON.stringify({ startTime, endTime, reason }),
+        details: JSON.stringify({ startUtc, endUtc, reason: finalReason }),
       },
     });
 
@@ -52,7 +111,10 @@ export async function POST(req: NextRequest) {
     if (error.message === "UNAUTHORIZED_ADMIN") {
       return NextResponse.json({ success: false, error: "No autorizado" }, { status: 401 });
     }
-    return NextResponse.json({ success: false, error: error.message || "Error al crear bloqueo" }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: error.message || "Error al crear bloqueo" },
+      { status: 500 }
+    );
   }
 }
 

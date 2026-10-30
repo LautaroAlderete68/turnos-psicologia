@@ -26,7 +26,12 @@ import {
   parseISO,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { formatTime24h, formatDateTimeArgentina, getArgentinaDayOfWeek } from "@/lib/timezone";
+import {
+  formatTime24h,
+  formatDateTimeArgentina,
+  getArgentinaDayOfWeek,
+  getArgentinaDateString,
+} from "@/lib/timezone";
 
 interface AdminCalendarClientProps {
   appointments: any[];
@@ -75,7 +80,7 @@ export default function AdminCalendarClient({
   const openDayLockModal = (day: Date) => {
     setSelectedLockDay(day);
     setDayLockReason("");
-    const dayOfWeek = day.getDay();
+    const dayOfWeek = getArgentinaDayOfWeek(day);
     const schedule = weeklySchedules.find((s: any) => s.dayOfWeek === dayOfWeek);
     setCustomSlotStart(schedule?.startTime || "09:00");
     const [h, m] = (schedule?.startTime || "09:00").split(":").map(Number);
@@ -95,8 +100,8 @@ export default function AdminCalendarClient({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          startTime: `${dateStr}T00:00:00`,
-          endTime: `${dateStr}T23:59:59`,
+          dateStr,
+          wholeDay: true,
           reason,
         }),
       });
@@ -119,15 +124,16 @@ export default function AdminCalendarClient({
     if (!selectedLockDay) return;
     setSubmittingBlock(true);
     const dateStr = format(selectedLockDay, "yyyy-MM-dd");
-    const reason = dayLockReason.trim() || defaultReason || `Horario bloqueado (${startTimeStr} - ${endTimeStr})`;
+    const reason = dayLockReason.trim() || defaultReason || `Turno ${startTimeStr} bloqueado`;
 
     try {
       const res = await fetch("/api/admin/blocks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          startTime: `${dateStr}T${startTimeStr}:00`,
-          endTime: `${dateStr}T${endTimeStr}:00`,
+          dateStr,
+          startTimeStr,
+          endTimeStr,
           reason,
         }),
       });
@@ -154,15 +160,13 @@ export default function AdminCalendarClient({
 
     setSubmittingBlock(true);
     try {
-      const startIso = `${blockDate}T${blockStartTime}:00`;
-      const endIso = `${blockDate}T${blockEndTime}:00`;
-
       const res = await fetch("/api/admin/blocks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          startTime: startIso,
-          endTime: endIso,
+          dateStr: blockDate,
+          startTimeStr: blockStartTime,
+          endTimeStr: blockEndTime,
           reason: blockReason.trim(),
         }),
       });
@@ -198,7 +202,7 @@ export default function AdminCalendarClient({
   // Calcular turnos regulares de atención según weeklySchedules para el día seleccionado
   const getSlotsForSelectedDay = () => {
     if (!selectedLockDay) return { isActive: false, slots: [] };
-    const dayOfWeek = selectedLockDay.getDay();
+    const dayOfWeek = getArgentinaDayOfWeek(selectedLockDay);
     const schedule = weeklySchedules.find((s: any) => s.dayOfWeek === dayOfWeek);
     if (!schedule || !schedule.isActive) {
       return { isActive: false, slots: [] };
@@ -293,48 +297,70 @@ export default function AdminCalendarClient({
       {/* Grilla Semanal */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-7">
         {weekDays.map((day) => {
+          const dateStr = format(day, "yyyy-MM-dd");
           const isToday = isSameDay(day, new Date());
-          const dayApps = appointments.filter((app) =>
-            isSameDay(parseISO(app.startTime), day)
+          const dayOfWeek = getArgentinaDayOfWeek(day);
+          const schedule = weeklySchedules.find((s: any) => s.dayOfWeek === dayOfWeek);
+          const isWorkDay = schedule ? schedule.isActive : false;
+
+          const dayApps = appointments.filter(
+            (app) => getArgentinaDateString(app.startTime) === dateStr
           );
-          const dayBlocks = blocks.filter((b) =>
-            isSameDay(parseISO(b.startTime), day)
+          const dayBlocks = blocks.filter(
+            (b) => getArgentinaDateString(b.startTime) === dateStr
           );
 
-          // Verificar si el día está totalmente bloqueado o tiene bloqueos
-          const isFullyBlocked = dayBlocks.some((b) => {
-            const bStart = new Date(b.startTime);
-            const bEnd = new Date(b.endTime);
-            const startH = bStart.getHours();
-            const endH = bEnd.getHours();
-            return startH <= 8 && (endH >= 20 || bEnd.getDate() > bStart.getDate());
+          // Verificar si el día está totalmente bloqueado de forma manual
+          const wholeDayBlock = dayBlocks.find((b) => {
+            const bStart = formatTime24h(b.startTime);
+            const bEnd = formatTime24h(b.endTime);
+            const bStartDate = getArgentinaDateString(b.startTime);
+            const bEndDate = getArgentinaDateString(b.endTime);
+            return (
+              (bStart <= "08:00" && (bEnd >= "20:00" || bEndDate > bStartDate)) ||
+              (bStart === "00:00" && (bEnd >= "23:50" || bEndDate > bStartDate))
+            );
           });
+          const isFullyBlocked = Boolean(wholeDayBlock);
           const hasBlocks = dayBlocks.length > 0;
 
           return (
             <div
               key={day.toISOString()}
-              className={`rounded-2xl border p-3 flex flex-col min-h-[400px] bg-white shadow-xs ${
-                isToday ? "border-sage-500 ring-1 ring-sage-500" : "border-warm-200"
+              className={`rounded-2xl border p-3 flex flex-col min-h-[400px] shadow-xs transition ${
+                isToday
+                  ? "border-sage-500 ring-1 ring-sage-500 bg-white"
+                  : !isWorkDay
+                  ? "border-dashed border-warm-300 bg-warm-100/50"
+                  : "border-warm-200 bg-white"
               }`}
             >
               {/* Encabezado del día con Candado interactivo */}
               <div
                 className={`flex items-center justify-between pb-2.5 border-b ${
-                  isToday ? "border-sage-200 bg-sage-50/60 -mx-3 -mt-3 p-3 rounded-t-2xl" : "border-warm-200"
+                  isToday
+                    ? "border-sage-200 bg-sage-50/60 -mx-3 -mt-3 p-3 rounded-t-2xl"
+                    : "border-warm-200"
                 }`}
               >
                 <div>
                   <span className="text-[11px] font-bold uppercase tracking-wider text-gray-500 block">
                     {format(day, "EEEE", { locale: es })}
                   </span>
-                  <span
-                    className={`text-lg font-extrabold ${
-                      isToday ? "text-sage-800" : "text-gray-900"
-                    }`}
-                  >
-                    {format(day, "d")}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className={`text-lg font-extrabold ${
+                        isToday ? "text-sage-800" : "text-gray-900"
+                      }`}
+                    >
+                      {format(day, "d")}
+                    </span>
+                    {!isWorkDay && (
+                      <span className="text-[10px] font-semibold text-rose-700 bg-rose-100/80 px-1.5 py-0.5 rounded-md">
+                        Cerrado
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Botón de Candado por Día */}
@@ -342,14 +368,18 @@ export default function AdminCalendarClient({
                   type="button"
                   onClick={() => openDayLockModal(day)}
                   title={
-                    isFullyBlocked
+                    !isWorkDay
+                      ? "Día no laborable (bloqueado por defecto en horario semanal). Hacé clic para ver o gestionar excepciones."
+                      : isFullyBlocked
                       ? "Día completamente bloqueado (clic para gestionar o desbloquear)"
                       : hasBlocks
                       ? "Día con turnos bloqueados (clic para gestionar o desbloquear)"
                       : "Bloquear día o turnos específicos"
                   }
                   className={`p-2 rounded-xl border transition flex items-center justify-center ${
-                    isFullyBlocked
+                    !isWorkDay
+                      ? "bg-rose-100/80 border-rose-300 text-rose-800 hover:bg-rose-200 shadow-2xs"
+                      : isFullyBlocked
                       ? "bg-red-100 border-red-300 text-red-700 hover:bg-red-200"
                       : hasBlocks
                       ? "bg-amber-100 border-amber-300 text-amber-700 hover:bg-amber-200"
@@ -414,7 +444,21 @@ export default function AdminCalendarClient({
                   </button>
                 ))}
 
-                {dayApps.length === 0 && dayBlocks.length === 0 && (
+                {/* Si no hay eventos y no es laborable */}
+                {!isWorkDay && dayApps.length === 0 && dayBlocks.length === 0 && (
+                  <div className="h-full flex flex-col items-center justify-center p-4 text-center rounded-xl bg-white/60 border border-warm-200/60 my-auto">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-100 text-rose-700 mb-2">
+                      <Lock className="h-4 w-4" />
+                    </div>
+                    <span className="text-xs font-bold text-gray-800 block">Día No Laborable</span>
+                    <span className="text-[10px] text-gray-500 block mt-0.5">
+                      Bloqueado por defecto
+                    </span>
+                  </div>
+                )}
+
+                {/* Si es laborable y no hay eventos */}
+                {isWorkDay && dayApps.length === 0 && dayBlocks.length === 0 && (
                   <div className="h-full flex items-center justify-center text-[11px] text-gray-300">
                     Sin eventos
                   </div>
@@ -431,20 +475,24 @@ export default function AdminCalendarClient({
       {selectedLockDay && (() => {
         const dateStr = format(selectedLockDay, "yyyy-MM-dd");
         const dayApps = appointments.filter(
-          (app) => isSameDay(parseISO(app.startTime), selectedLockDay) && app.status !== "CANCELADA"
+          (app) => getArgentinaDateString(app.startTime) === dateStr && app.status !== "CANCELADA"
         );
-        const dayBlocks = blocks.filter((b) =>
-          isSameDay(parseISO(b.startTime), selectedLockDay)
+        const dayBlocks = blocks.filter(
+          (b) => getArgentinaDateString(b.startTime) === dateStr
         );
         const { isActive: isDayScheduleActive, slots } = getSlotsForSelectedDay();
 
-        const isWholeDayBlocked = dayBlocks.some((b) => {
-          const bStart = new Date(b.startTime);
-          const bEnd = new Date(b.endTime);
-          const sH = bStart.getHours();
-          const eH = bEnd.getHours();
-          return sH <= 8 && (eH >= 20 || bEnd.getDate() > bStart.getDate());
+        const wholeDayBlock = dayBlocks.find((b) => {
+          const bStart = formatTime24h(b.startTime);
+          const bEnd = formatTime24h(b.endTime);
+          const bStartDate = getArgentinaDateString(b.startTime);
+          const bEndDate = getArgentinaDateString(b.endTime);
+          return (
+            (bStart <= "08:00" && (bEnd >= "20:00" || bEndDate > bStartDate)) ||
+            (bStart === "00:00" && (bEnd >= "23:50" || bEndDate > bStartDate))
+          );
         });
+        const isWholeDayBlocked = Boolean(wholeDayBlock);
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs">
@@ -474,6 +522,19 @@ export default function AdminCalendarClient({
 
               {/* Contenido scrolleable */}
               <div className="mt-4 space-y-5 overflow-y-auto pr-1 flex-1 text-xs sm:text-sm">
+                {/* Cartel explicativo si es fin de semana / no laborable */}
+                {!isDayScheduleActive && (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50/70 p-4">
+                    <div className="flex items-center gap-2 text-rose-900 font-bold text-xs sm:text-sm">
+                      <Lock className="h-4 w-4 text-rose-700 shrink-0" />
+                      <span>Día No Laborable por Configuración Semanal</span>
+                    </div>
+                    <p className="mt-1 text-xs text-rose-800/80">
+                      Este día (ej. fin de semana o día sin atención) ya está bloqueado por defecto. Ningún paciente puede reservar turnos en esta fecha.
+                    </p>
+                  </div>
+                )}
+
                 {/* Motivo común opcional */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-700 mb-1">
@@ -488,25 +549,46 @@ export default function AdminCalendarClient({
                   />
                 </div>
 
-                {/* 1. Opción: Bloquear Día Completo */}
-                <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <span className="font-bold text-xs sm:text-sm text-rose-950 block">
-                      Bloquear todo el día
-                    </span>
-                    <span className="text-[11px] text-rose-800/80 block mt-0.5">
-                      Inhabilita todos los turnos de esta jornada para que ningún paciente pueda reservar.
-                    </span>
+                {/* 1. Opción: Bloquear / Desbloquear Día Completo */}
+                {isWholeDayBlocked && wholeDayBlock ? (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="font-bold text-xs sm:text-sm text-red-950 flex items-center gap-1.5">
+                        <Lock className="h-4 w-4 text-red-700" />
+                        Día actualmente bloqueado por completo
+                      </span>
+                      <span className="text-[11px] text-red-800/80 block mt-0.5">
+                        Motivo: {wholeDayBlock.reason}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteBlock(wholeDayBlock.id)}
+                      className="rounded-xl bg-white border border-red-300 text-red-700 px-4 py-2 text-xs font-bold shadow-xs hover:bg-red-100 transition shrink-0"
+                    >
+                      Desbloquear Día Completo
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    disabled={submittingBlock}
-                    onClick={handleBlockWholeDay}
-                    className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-700 transition shrink-0 disabled:opacity-50"
-                  >
-                    {submittingBlock ? "Guardando..." : "Bloquear Día Entero"}
-                  </button>
-                </div>
+                ) : (
+                  <div className="rounded-xl border border-rose-200 bg-rose-50/60 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="font-bold text-xs sm:text-sm text-rose-950 block">
+                        Bloquear todo el día
+                      </span>
+                      <span className="text-[11px] text-rose-800/80 block mt-0.5">
+                        Inhabilita todos los turnos de esta jornada para que ningún paciente pueda reservar.
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={submittingBlock}
+                      onClick={handleBlockWholeDay}
+                      className="rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-700 transition shrink-0 disabled:opacity-50"
+                    >
+                      {submittingBlock ? "Guardando..." : "Bloquear Día Entero"}
+                    </button>
+                  </div>
+                )}
 
                 {/* 2. Opción: Bloquear Turnos Específicos de la Jornada */}
                 <div className="space-y-2">
@@ -515,8 +597,8 @@ export default function AdminCalendarClient({
                       Bloquear Turnos Individuales ({slots.length} turnos)
                     </span>
                     {!isDayScheduleActive && (
-                      <span className="text-[11px] text-amber-600 font-medium">
-                        (Día sin atención habitual configurada)
+                      <span className="text-[11px] text-rose-700 font-semibold">
+                        (Día sin atención habitual)
                       </span>
                     )}
                   </div>
@@ -524,21 +606,28 @@ export default function AdminCalendarClient({
                   {slots.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1 bg-gray-50 rounded-xl border border-gray-200">
                       {slots.map((slot) => {
-                        const slotStartMs = new Date(`${dateStr}T${slot.start}:00`).getTime();
-                        const slotEndMs = new Date(`${dateStr}T${slot.end}:00`).getTime();
-
                         // Verificar si ya tiene bloqueo
                         const existingBlock = dayBlocks.find((b) => {
-                          const bStart = new Date(b.startTime).getTime();
-                          const bEnd = new Date(b.endTime).getTime();
-                          return slotStartMs < bEnd && slotEndMs > bStart;
+                          const bStart = formatTime24h(b.startTime);
+                          const bEnd = formatTime24h(b.endTime);
+                          const bStartDate = getArgentinaDateString(b.startTime);
+                          const bEndDate = getArgentinaDateString(b.endTime);
+                          if (
+                            bStartDate < dateStr ||
+                            bEndDate > dateStr ||
+                            (bStart <= "08:00" && bEnd >= "20:00") ||
+                            (bStart === "00:00" && bEnd >= "23:50")
+                          ) {
+                            return true;
+                          }
+                          return slot.start < bEnd && slot.end > bStart;
                         });
 
                         // Verificar si tiene turno reservado
                         const existingApp = dayApps.find((app) => {
-                          const aStart = new Date(app.startTime).getTime();
-                          const aEnd = new Date(app.endTime).getTime();
-                          return slotStartMs < aEnd && slotEndMs > aStart;
+                          const aStart = formatTime24h(app.startTime);
+                          const aEnd = formatTime24h(app.endTime);
+                          return slot.start < aEnd && slot.end > aStart;
                         });
 
                         return (
