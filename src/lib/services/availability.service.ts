@@ -1,5 +1,6 @@
 import { addMinutes, addHours, isAfter, isBefore, parse } from "date-fns";
 import prisma from "../prisma";
+import { AppointmentService } from "./appointment.service";
 import {
   argentinaTimeToUtc,
   getArgentinaDayOfWeek,
@@ -46,6 +47,9 @@ export class AvailabilityService {
    * Obtiene la disponibilidad para una fecha específica ("YYYY-MM-DD" en Argentina).
    */
   static async getSlotsForDate(dateStr: string): Promise<DayAvailability> {
+    try {
+      await AppointmentService.cleanExpiredAppointments();
+    } catch {}
     const profile = await prisma.psychologistProfile.findFirst();
     if (!profile) {
       throw new Error("Perfil profesional no configurado");
@@ -259,6 +263,9 @@ export class AvailabilityService {
    * Obtiene disponibilidad para un rango de fechas (ej. una semana de lunes a domingo).
    */
   static async getSlotsForRange(dateStrings: string[]): Promise<DayAvailability[]> {
+    try {
+      await AppointmentService.cleanExpiredAppointments();
+    } catch {}
     const results: DayAvailability[] = [];
     for (const d of dateStrings) {
       results.push(await this.getSlotsForDate(d));

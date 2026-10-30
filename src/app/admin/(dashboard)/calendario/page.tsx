@@ -1,10 +1,17 @@
 import prisma from "@/lib/prisma";
 import AdminCalendarClient from "./calendar-client";
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, addDays } from "date-fns";
+import { AppointmentService } from "@/lib/services/appointment.service";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminCalendarPage() {
+  try {
+    await AppointmentService.cleanExpiredAppointments();
+  } catch (e) {
+    console.error("Error al limpiar reservas expiradas:", e);
+  }
+
   const profile = await prisma.psychologistProfile.findFirst();
 
   // Traer turnos de los próximos 30 días y pasados 7 días

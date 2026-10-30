@@ -515,7 +515,10 @@ export default function AdminCalendarClient({
       {selectedLockDay && (() => {
         const dateStr = format(selectedLockDay, "yyyy-MM-dd");
         const dayApps = appointments.filter(
-          (app) => getArgentinaDateString(app.startTime) === dateStr && app.status !== "CANCELADA"
+          (app) =>
+            getArgentinaDateString(app.startTime) === dateStr &&
+            app.status !== "CANCELADA" &&
+            !(app.status === "PENDIENTE_PAGO" && app.expiresAt && new Date(app.expiresAt) <= new Date())
         );
         const dayBlocks = blocks.filter(
           (b) => getArgentinaDateString(b.startTime) === dateStr
