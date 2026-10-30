@@ -41,7 +41,7 @@ export async function GET(
       );
     }
 
-    const fileBuffer = await storageProvider.get(proof.storageKey);
+    const fileBuffer = proof.dataBuffer || (await storageProvider.get(proof.storageKey));
     if (!fileBuffer) {
       return NextResponse.json(
         { success: false, error: "Archivo físico no encontrado en almacenamiento." },

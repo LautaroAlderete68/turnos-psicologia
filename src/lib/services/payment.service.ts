@@ -56,7 +56,7 @@ export class PaymentService {
       validation.mimeType
     );
 
-    // 4. Crear registro en BD y actualizar estados
+    // 4. Crear registro en BD (con persistencia en PostgreSQL para Serverless) y actualizar estados
     const proof = await prisma.paymentProof.create({
       data: {
         paymentId: payment.id,
@@ -64,6 +64,7 @@ export class PaymentService {
         originalFilename: input.originalFilename,
         mimeType: saveResult.mimeType,
         sizeBytes: saveResult.sizeBytes,
+        dataBuffer: new Uint8Array(input.buffer),
       },
     });
 

@@ -142,6 +142,7 @@ model PaymentProof {
   originalFilename String
   mimeType         String
   sizeBytes        Int
+  dataBuffer       Bytes?
   uploadedAt       DateTime @default(now())
 }
 
