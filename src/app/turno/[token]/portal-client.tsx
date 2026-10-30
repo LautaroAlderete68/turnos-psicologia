@@ -166,6 +166,7 @@ export default function PatientPortalClient({
           appointmentId: appointment.id,
           status: "CANCELADA",
           cancellationReason: cancelReason.trim(),
+          token,
         }),
       });
 

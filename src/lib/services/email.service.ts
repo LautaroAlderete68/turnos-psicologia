@@ -251,15 +251,73 @@ export class EmailService {
     to: string;
     patientName: string;
     publicCode: string;
+    dateTimeFormatted?: string;
     reason?: string;
   }) {
     const subject = `Turno cancelado - Código ${data.publicCode}`;
     const html = `
       <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
-        <h2 style="color: #4A5568;">Turno cancelado</h2>
+        <h2 style="color: #BE123C;">Turno cancelado</h2>
         <p>Hola <strong>${data.patientName}</strong>,</p>
-        <p>El turno con código <strong>${data.publicCode}</strong> ha sido cancelado.</p>
-        ${data.reason ? `<p><strong>Motivo:</strong> ${data.reason}</p>` : ""}
+        <p>Te informamos que tu turno con código <strong>${data.publicCode}</strong>${
+          data.dateTimeFormatted ? ` para el día <strong>${data.dateTimeFormatted}</strong>` : ""
+        } ha sido cancelado.</p>
+        ${
+          data.reason
+            ? `<div style="background-color: #FEF2F2; border-left: 4px solid #EF4444; padding: 12px 16px; margin: 16px 0; border-radius: 4px;">
+                 <p style="margin: 0; color: #991B1B; font-size: 14px;"><strong>Motivo:</strong> ${data.reason}</p>
+               </div>`
+            : ""
+        }
+        <p style="margin-top: 24px; font-size: 13px; color: #718096;">
+          Si tenés dudas o querés reprogramar, podés solicitar un nuevo turno ingresando en nuestra web o respondiendo a este correo.
+        </p>
+      </div>
+    `;
+    return this.send({ to: data.to, subject, html });
+  }
+
+  /**
+   * Notificación: Cambio manual de estado del turno.
+   */
+  static async sendAppointmentStatusUpdated(data: {
+    to: string;
+    patientName: string;
+    publicCode: string;
+    newStatus: string;
+    dateTimeFormatted: string;
+    note?: string;
+  }) {
+    const statusLabels: Record<string, string> = {
+      PENDIENTE_PAGO: "Pendiente de pago",
+      COMPROBANTE_ENVIADO: "Comprobante en revisión",
+      CONFIRMADA: "Confirmada",
+      COMPLETADA: "Completada",
+      CANCELADA: "Cancelada",
+      AUSENTE: "Ausente / No asistió",
+    };
+    const friendlyStatus = statusLabels[data.newStatus] || data.newStatus;
+    const subject = `Actualización de tu turno - Código ${data.publicCode}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
+        <h2 style="color: #BE123C;">Actualización de turno</h2>
+        <p>Hola <strong>${data.patientName}</strong>,</p>
+        <p>Te informamos que el estado de tu turno con código <strong>${data.publicCode}</strong> para el día <strong>${data.dateTimeFormatted}</strong> ha sido actualizado a:</p>
+        <div style="margin: 16px 0;">
+          <span style="font-size: 15px; font-weight: bold; color: #1F2937; background-color: #F3F4F6; padding: 8px 16px; border-radius: 6px; display: inline-block;">
+            ${friendlyStatus}
+          </span>
+        </div>
+        ${
+          data.note
+            ? `<div style="background-color: #F9FAFB; border: 1px solid #E5E7EB; padding: 12px 16px; margin: 16px 0; border-radius: 6px;">
+                 <p style="margin: 0; color: #374151; font-size: 14px;"><strong>Nota del consultorio:</strong> ${data.note}</p>
+               </div>`
+            : ""
+        }
+        <p style="margin-top: 24px; font-size: 13px; color: #718096;">
+          Para cualquier consulta podés responder directamente a este correo.
+        </p>
       </div>
     `;
     return this.send({ to: data.to, subject, html });

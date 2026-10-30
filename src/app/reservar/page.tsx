@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Calendar,
@@ -50,6 +50,7 @@ export default function ReservarPage() {
 
   // Fecha de hoy en formato YYYY-MM-DD
   const todayStr = format(new Date(), "yyyy-MM-dd");
+  const hasAutoAdvancedRef = useRef(false);
 
   // Datos del perfil profesional cargados de la API
   const [profile, setProfile] = useState<{
@@ -80,20 +81,81 @@ export default function ReservarPage() {
     price: number;
   } | null>(null);
 
-  // Cargar disponibilidad para los 7 días de la semana actual
+  // Cargar disponibilidad para la semana o avanzar automáticamente a la primera con turnos libres
   useEffect(() => {
-    async function loadWeek() {
+    let isCancelled = false;
+
+    async function loadWeek(weekStart: Date) {
       setLoadingWeek(true);
       setErrorMessage(null);
 
+      // Si es la carga inicial, buscamos la primera semana que tenga días disponibles
+      if (!hasAutoAdvancedRef.current) {
+        hasAutoAdvancedRef.current = true;
+
+        for (let weekOffset = 0; weekOffset < 4; weekOffset++) {
+          const testWeekStart = addDays(weekStart, weekOffset * 7);
+          const weekDays: string[] = [];
+          for (let i = 0; i < 7; i++) {
+            weekDays.push(format(addDays(testWeekStart, i), "yyyy-MM-dd"));
+          }
+
+          try {
+            const res = await fetch(`/api/availability?dates=${weekDays.join(",")}`);
+            const data = await res.json();
+            if (isCancelled) return;
+
+            if (data.success) {
+              if (data.profile) {
+                setProfile(data.profile);
+                if (!data.profile.allowPresencial && data.profile.allowVirtual) {
+                  setModality("VIRTUAL");
+                }
+              }
+
+              // ¿Tiene al menos un turno disponible a partir de hoy?
+              const hasSlots = data.days.some(
+                (d: DayData) => d.date >= todayStr && d.isOpen && d.slots.some((s) => s.available)
+              );
+
+              if (hasSlots || weekOffset === 3) {
+                if (weekOffset > 0) {
+                  setCurrentWeekStart(testWeekStart);
+                }
+                setWeekDaysData(data.days);
+
+                // Auto-seleccionar primer día habilitado y con turnos libres
+                const firstOpen = data.days.find(
+                  (d: DayData) => d.date >= todayStr && d.isOpen && d.slots.some((s) => s.available)
+                );
+                if (firstOpen) {
+                  setSelectedDate(firstOpen.date);
+                } else {
+                  const firstValid = data.days.find((d: DayData) => d.date >= todayStr);
+                  setSelectedDate(firstValid ? firstValid.date : weekDays[0]);
+                }
+                setLoadingWeek(false);
+                return;
+              }
+            }
+          } catch (err) {
+            console.error("Error buscando disponibilidad inicial:", err);
+            break;
+          }
+        }
+      }
+
+      // Carga estándar de la semana seleccionada
       const dateStrings: string[] = [];
       for (let i = 0; i < 7; i++) {
-        dateStrings.push(format(addDays(currentWeekStart, i), "yyyy-MM-dd"));
+        dateStrings.push(format(addDays(weekStart, i), "yyyy-MM-dd"));
       }
 
       try {
         const res = await fetch(`/api/availability?dates=${dateStrings.join(",")}`);
         const data = await res.json();
+        if (isCancelled) return;
+
         if (data.success) {
           setWeekDaysData(data.days);
           if (data.profile) {
@@ -103,7 +165,7 @@ export default function ReservarPage() {
             }
           }
 
-          // Auto-seleccionar primer día disponible que NO sea fecha pasada
+          // Auto-seleccionar primer día disponible
           const firstOpen = data.days.find(
             (d: DayData) => d.date >= todayStr && d.isOpen && d.slots.some((s) => s.available)
           );
@@ -111,20 +173,28 @@ export default function ReservarPage() {
             setSelectedDate(firstOpen.date);
           } else {
             const firstValid = data.days.find((d: DayData) => d.date >= todayStr);
-            setSelectedDate(firstValid ? firstValid.date : dateStrings[dateStrings.length - 1]);
+            setSelectedDate(firstValid ? firstValid.date : dateStrings[0]);
           }
         } else {
           setErrorMessage(data.error || "No se pudo cargar la agenda");
         }
       } catch (err) {
-        setErrorMessage("Error de conexión al cargar la disponibilidad");
+        if (!isCancelled) {
+          setErrorMessage("Error de conexión al cargar la disponibilidad");
+        }
       } finally {
-        setLoadingWeek(false);
+        if (!isCancelled) {
+          setLoadingWeek(false);
+        }
       }
     }
 
-    loadWeek();
-  }, [currentWeekStart]);
+    loadWeek(currentWeekStart);
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentWeekStart, todayStr]);
 
   const handlePrevWeek = () => {
     const prev = addDays(currentWeekStart, -7);
@@ -414,14 +484,16 @@ export default function ReservarPage() {
                 const isPast = day.date < todayStr;
                 const isSelected = day.date === selectedDate;
                 const hasSlots = !isPast && day.isOpen && day.slots.some((s) => s.available);
+                const isFull = !isPast && day.isOpen && !hasSlots;
+                const isClosed = !isPast && !day.isOpen;
 
                 return (
                   <button
                     key={day.date}
                     type="button"
-                    disabled={isPast}
+                    disabled={isPast || isClosed || isFull}
                     onClick={() => {
-                      if (!isPast) {
+                      if (!isPast && hasSlots) {
                         setSelectedDate(day.date);
                         setSelectedTime("");
                       }
@@ -432,8 +504,10 @@ export default function ReservarPage() {
                         : isSelected
                         ? "bg-sage-600 text-white shadow-xs"
                         : hasSlots
-                        ? "bg-warm-50 hover:bg-warm-100 text-gray-800"
-                        : "bg-gray-50 text-gray-400 opacity-60"
+                        ? "bg-warm-50 hover:bg-warm-100 text-gray-800 cursor-pointer"
+                        : isFull
+                        ? "bg-amber-50/60 text-amber-700/80 cursor-not-allowed opacity-75"
+                        : "bg-gray-50 text-gray-400 cursor-not-allowed opacity-50"
                     }`}
                   >
                     <span className="text-[10px] uppercase font-semibold sm:text-xs">
@@ -446,11 +520,13 @@ export default function ReservarPage() {
                       {isPast ? (
                         <span className="text-gray-300">Pasado</span>
                       ) : hasSlots ? (
-                        <span className={isSelected ? "text-sage-100" : "text-sage-700"}>
+                        <span className={isSelected ? "text-sage-100 font-semibold" : "text-sage-700 font-semibold"}>
                           Libre
                         </span>
+                      ) : isFull ? (
+                        <span className="text-amber-700 font-medium">Completo</span>
                       ) : (
-                        <span>Cerrado</span>
+                        <span className="text-gray-400">Sin atención</span>
                       )}
                     </span>
                   </button>
