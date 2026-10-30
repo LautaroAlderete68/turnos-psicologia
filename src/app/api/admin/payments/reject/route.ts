@@ -3,6 +3,7 @@ import { requireAdminSession } from "@/lib/auth";
 import { PaymentService } from "@/lib/services/payment.service";
 import prisma from "@/lib/prisma";
 import { EmailService } from "@/lib/services/email.service";
+import { createPatientToken } from "@/lib/patient-auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,14 +30,25 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (appointment && appointment.accessTokens.length > 0) {
-      EmailService.sendPaymentRejected({
-        to: appointment.patient.email,
-        patientName: appointment.patient.fullName,
-        publicCode: appointment.publicCode,
-        reason: rejectionReason,
-        token: appointment.accessTokens[0].id,
-      }).catch((err) => console.error("Error al despachar email de comprobante rechazado:", err));
+    if (appointment) {
+      let token = appointment.accessTokens[0]?.id;
+      try {
+        token = await createPatientToken(appointment.id, 720);
+      } catch (tokenErr) {
+        console.error("[Reject Payment] Error al generar token:", tokenErr);
+      }
+
+      try {
+        await EmailService.sendPaymentRejected({
+          to: appointment.patient.email,
+          patientName: appointment.patient.fullName,
+          publicCode: appointment.publicCode,
+          reason: rejectionReason,
+          token: token || appointment.id,
+        });
+      } catch (err) {
+        console.error("Error al despachar email de comprobante rechazado:", err);
+      }
     }
 
     return NextResponse.json({ success: true, payment: updatedPayment });

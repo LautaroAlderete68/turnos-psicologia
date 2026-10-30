@@ -185,7 +185,7 @@ export class AppointmentService {
         data: {
           appointmentId: appointment.id,
           tokenHash,
-          expiresAt: addHours(now, 72), // Token válido por 72 horas
+          expiresAt: addHours(now, 720), // Token válido por 30 días
         },
       });
 

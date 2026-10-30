@@ -12,9 +12,10 @@ export function generateRawToken(): string {
 
 /**
  * Genera y almacena un token criptográfico seguro para el acceso de un paciente a su turno.
- * Devuelve el token en texto plano que irá en el enlace único (el cual no se guarda en texto plano en la BD).
+ * Devuelve el token en texto plano que irá en el enlace único.
+ * Por defecto es válido por 720 horas (30 días).
  */
-export async function createPatientToken(appointmentId: string, hoursValid = 72): Promise<string> {
+export async function createPatientToken(appointmentId: string, hoursValid = 720): Promise<string> {
   const rawToken = generateRawToken();
   const tokenHash = hashToken(rawToken);
   const expiresAt = addHours(new Date(), hoursValid);
@@ -31,17 +32,26 @@ export async function createPatientToken(appointmentId: string, hoursValid = 72)
 }
 
 /**
- * Valida el token del paciente. Si es válido y no expiró, retorna el turno y sus datos asociados.
+ * Valida el token del paciente.
+ * Soporta tanto tokens en texto plano (verificados contra tokenHash)
+ * como identificadores directos (para enlaces generados con ID de token).
+ * Si el token expiró pero la cita sigue vigente, renueva el acceso automáticamente.
  */
-export async function validatePatientToken(rawToken: string) {
-  if (!rawToken || typeof rawToken !== "string" || rawToken.length < 32) {
+export async function validatePatientToken(token: string) {
+  if (!token || typeof token !== "string" || token.trim().length < 8) {
     return null;
   }
 
-  const tokenHash = hashToken(rawToken);
+  const cleanToken = token.trim();
+  const tokenHash = hashToken(cleanToken);
 
-  const tokenRecord = await prisma.patientAccessToken.findUnique({
-    where: { tokenHash },
+  const tokenRecord = await prisma.patientAccessToken.findFirst({
+    where: {
+      OR: [
+        { tokenHash },
+        { id: cleanToken },
+      ],
+    },
     include: {
       appointment: {
         include: {
@@ -62,8 +72,28 @@ export async function validatePatientToken(rawToken: string) {
     return null;
   }
 
+  // Si la fecha actual supera expiresAt, verificamos si el turno aún está vigente o activo
   if (new Date() > tokenRecord.expiresAt) {
-    return null;
+    const appointmentEndTime = new Date(tokenRecord.appointment.endTime);
+    const gracePeriodEnd = new Date(
+      Math.max(
+        appointmentEndTime.getTime() + 7 * 24 * 60 * 60 * 1000,
+        tokenRecord.createdAt.getTime() + 60 * 24 * 60 * 60 * 1000
+      )
+    );
+
+    if (new Date() <= gracePeriodEnd && tokenRecord.appointment.status !== "CANCELADA") {
+      try {
+        await prisma.patientAccessToken.update({
+          where: { id: tokenRecord.id },
+          data: { expiresAt: gracePeriodEnd },
+        });
+      } catch (e) {
+        console.error("[validatePatientToken] Error al extender vigencia de token:", e);
+      }
+    } else {
+      return null;
+    }
   }
 
   return tokenRecord.appointment;

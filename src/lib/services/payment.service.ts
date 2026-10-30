@@ -233,7 +233,7 @@ export class PaymentService {
     const tokenHash = crypto.createHash("sha256").update(options.patientToken).digest("hex");
 
     const validToken = proof.payment.appointment.accessTokens.some(
-      (t) => t.tokenHash === tokenHash && t.expiresAt > new Date()
+      (t) => (t.tokenHash === tokenHash || t.id === options.patientToken) && t.expiresAt > new Date()
     );
 
     return validToken;

@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { EmailService } from "@/lib/services/email.service";
 import { MeetingService } from "@/lib/services/meeting.service";
 import { formatDateTimeArgentina } from "@/lib/timezone";
+import { createPatientToken } from "@/lib/patient-auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (appointment && appointment.accessTokens.length > 0) {
+    if (appointment) {
       let meetingUrl: string | null = appointment.meetingUrl;
 
       // Si el turno es VIRTUAL y aún no tiene sala asignada, generar una automáticamente
@@ -57,6 +58,14 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Generar token criptográfico nuevo de acceso para el enlace (válido por 30 días)
+      let token = appointment.accessTokens[0]?.id;
+      try {
+        token = await createPatientToken(appointment.id, 720);
+      } catch (tokenErr) {
+        console.error("[Approve Payment] Error al generar nuevo token de paciente:", tokenErr);
+      }
+
       // Notificar al paciente asegurando que Vercel espere el envío
       try {
         await EmailService.sendBookingConfirmed({
@@ -65,7 +74,7 @@ export async function POST(req: NextRequest) {
           publicCode: appointment.publicCode,
           dateTimeFormatted: formatDateTimeArgentina(appointment.startTime),
           modality: appointment.modality === "PRESENCIAL" ? "Presencial en consultorio" : "Atención virtual",
-          token: appointment.accessTokens[0].id,
+          token: token || appointment.id,
           meetingUrl,
         });
       } catch (err) {
