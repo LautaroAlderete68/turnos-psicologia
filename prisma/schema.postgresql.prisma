@@ -36,6 +36,7 @@ model PsychologistProfile {
   address                  String   @default("Atención Online / Videollamada")
   allowPresencial          Boolean  @default(false)
   allowVirtual             Boolean  @default(true)
+  googleMeetUrl            String?  @default("https://meet.google.com")
   sessionPrice             Float    @default(30000)
   sessionDuration          Int      @default(60)
   bufferMinutes            Int      @default(10)

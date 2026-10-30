@@ -5,7 +5,7 @@ import prisma from "@/lib/prisma";
 export async function POST(req: NextRequest) {
   try {
     const admin = await requireAdminSession();
-    const { appointmentId, status, adminNotes, cancellationReason } = await req.json();
+    const { appointmentId, status, adminNotes, cancellationReason, meetingUrl } = await req.json();
 
     if (!appointmentId) {
       return NextResponse.json({ success: false, error: "appointmentId requerido" }, { status: 400 });
@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     if (status) dataToUpdate.status = status;
     if (adminNotes !== undefined) dataToUpdate.adminNotes = adminNotes;
     if (cancellationReason !== undefined) dataToUpdate.cancellationReason = cancellationReason;
+    if (meetingUrl !== undefined) dataToUpdate.meetingUrl = meetingUrl;
 
     const updated = await prisma.appointment.update({
       where: { id: appointmentId },

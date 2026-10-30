@@ -49,6 +49,7 @@ export async function PUT(req: NextRequest) {
             address: profileData.address,
             allowPresencial: profileData.allowPresencial,
             allowVirtual: profileData.allowVirtual,
+            googleMeetUrl: profileData.googleMeetUrl,
             sessionPrice: Number(profileData.sessionPrice),
             sessionDuration: Number(profileData.sessionDuration),
             bufferMinutes: Number(profileData.bufferMinutes),

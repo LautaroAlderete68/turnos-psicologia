@@ -33,6 +33,7 @@ export default function AdminReservationsClient({
   const [newStatus, setNewStatus] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [cancellationReason, setCancellationReason] = useState("");
+  const [meetingUrl, setMeetingUrl] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Filtrado reactivo en cliente
@@ -56,6 +57,7 @@ export default function AdminReservationsClient({
     setNewStatus(app.status);
     setAdminNotes(app.adminNotes || "");
     setCancellationReason(app.cancellationReason || "");
+    setMeetingUrl(app.meetingUrl || "");
   };
 
   const handleSaveModal = async (e: React.FormEvent) => {
@@ -72,6 +74,7 @@ export default function AdminReservationsClient({
           status: newStatus,
           adminNotes: adminNotes.trim(),
           cancellationReason: newStatus === "CANCELADA" ? cancellationReason.trim() : null,
+          meetingUrl: meetingUrl.trim() || null,
         }),
       });
 

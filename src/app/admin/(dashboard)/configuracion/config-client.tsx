@@ -14,6 +14,7 @@ import {
   MapPin,
   Phone,
   Mail,
+  Video,
 } from "lucide-react";
 
 interface AdminConfigClientProps {
@@ -306,6 +307,25 @@ export default function AdminConfigClient({
             <span>Habilitar atención virtual</span>
           </label>
         </div>
+
+        {profile.allowVirtual && (
+          <div className="pt-2 border-t border-warm-100">
+            <label className="block text-xs font-semibold text-gray-700 flex items-center gap-1.5">
+              <Video className="h-3.5 w-3.5 text-rose-600" />
+              <span>Enlace de Google Meet para Sesiones Virtuales</span>
+            </label>
+            <input
+              type="url"
+              placeholder="https://meet.google.com/abc-defg-hij"
+              value={profile.googleMeetUrl || ''}
+              onChange={(e) => handleProfileChange('googleMeetUrl', e.target.value)}
+              className="mt-1 w-full rounded-xl border border-gray-200 p-2.5 text-xs text-gray-900 focus:border-sage-600 font-mono"
+            />
+            <p className="mt-1 text-[11px] text-gray-500">
+              Enlace de tu sala de Google Meet que se asignará automáticamente a los pacientes con turnos virtuales al aprobar su pago.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* 3. Días y Horarios Habituales de Atención */}

@@ -1,3 +1,5 @@
+import prisma from "@/lib/prisma";
+
 export interface CreateMeetingOptions {
   appointmentId: string;
   publicCode: string;
@@ -13,20 +15,19 @@ export interface MeetingResult {
 }
 
 /**
- * Servicio para la generación dinámica de salas virtuales de videollamada.
- * Soporta Google Meet (vía Google Calendar API / webhook / enlace estático o dinámico)
- * y Zoom (vía Server-to-Server OAuth / webhook).
+ * Servicio para la resolución y asignación de salas virtuales de Google Meet / Zoom.
  */
 export class MeetingService {
   /**
-   * Crea o resuelve la sala de reunión virtual para un turno virtual confirmado.
+   * Obtiene o genera el enlace de videollamada para un turno virtual confirmado.
+   * Prioriza Google Meet configurado por la profesional en el perfil o en variables de entorno.
    */
   static async createMeeting(options: CreateMeetingOptions): Promise<MeetingResult | null> {
     const provider = (process.env.VIRTUAL_MEETING_PROVIDER || "auto").toLowerCase();
 
-    // 1. Integración con Zoom Server-to-Server OAuth
+    // 1. Integración con Zoom Server-to-Server OAuth (si está explícitamente configurado)
     if (
-      (provider === "zoom" || provider === "auto") &&
+      provider === "zoom" &&
       process.env.ZOOM_ACCOUNT_ID &&
       process.env.ZOOM_CLIENT_ID &&
       process.env.ZOOM_CLIENT_SECRET
@@ -41,36 +42,34 @@ export class MeetingService {
       }
     }
 
-    // 2. Integración con Google Meet (vía Service Account / OAuth / Webhook)
-    if (
-      (provider === "meet" || provider === "google" || provider === "auto") &&
-      process.env.GOOGLE_CALENDAR_SERVICE_ACCOUNT_EMAIL &&
-      process.env.GOOGLE_CALENDAR_PRIVATE_KEY
-    ) {
-      try {
-        const meetUrl = await this.createGoogleMeet(options);
-        if (meetUrl) {
-          return { url: meetUrl, provider: "google_meet" };
-        }
-      } catch (err) {
-        console.error("[MeetingService] Error al generar reunión en Google Meet:", err);
+    // 2. Google Meet desde el perfil de la profesional (Base de Datos)
+    try {
+      const profile = await prisma.psychologistProfile.findFirst({
+        select: { googleMeetUrl: true },
+      });
+      if (profile?.googleMeetUrl && profile.googleMeetUrl.trim().length > 0) {
+        return {
+          url: profile.googleMeetUrl.trim(),
+          provider: "google_meet",
+        };
       }
+    } catch (err) {
+      console.error("[MeetingService] Error al consultar Google Meet del perfil:", err);
     }
 
-    // 3. Sala virtual predeterminada de la profesional (ej. Google Meet fijo / Zoom Personal Meeting ID)
-    const defaultRoomUrl = process.env.VIRTUAL_MEETING_DEFAULT_URL;
-    if (defaultRoomUrl) {
+    // 3. Google Meet desde variable de entorno GOOGLE_MEET_URL o VIRTUAL_MEETING_DEFAULT_URL
+    const envMeetUrl = process.env.GOOGLE_MEET_URL || process.env.VIRTUAL_MEETING_DEFAULT_URL;
+    if (envMeetUrl && envMeetUrl.trim().length > 0) {
       return {
-        url: defaultRoomUrl,
-        provider: "custom",
+        url: envMeetUrl.trim(),
+        provider: "google_meet",
       };
     }
 
-    // 4. Generación de sala instantánea segura con Jitsi / Meet fallback si no hay credenciales externas
-    const roomName = `Sesion-${options.publicCode}-${options.appointmentId.slice(-6)}`;
+    // 4. Fallback por defecto a Google Meet
     return {
-      url: `https://meet.jit.si/${roomName}`,
-      provider: "custom",
+      url: "https://meet.google.com",
+      provider: "google_meet",
     };
   }
 
@@ -134,16 +133,5 @@ export class MeetingService {
 
     const meetingData = await meetingRes.json();
     return meetingData.join_url;
-  }
-
-  /**
-   * Genera reunión en Google Meet usando Google Calendar API.
-   */
-  private static async createGoogleMeet(_options: CreateMeetingOptions): Promise<string | null> {
-    // Si la profesional configuró su sala fija de Google Meet:
-    if (process.env.GOOGLE_MEET_URL) {
-      return process.env.GOOGLE_MEET_URL;
-    }
-    return null;
   }
 }

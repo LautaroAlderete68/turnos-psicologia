@@ -203,8 +203,9 @@ export class EmailService {
         ${
           data.meetingUrl
             ? `<div style="background-color: #FFF1F2; border: 1px solid #FECDD3; padding: 16px; border-radius: 6px; margin: 16px 0; text-align: center;">
-                 <p style="margin: 0 0 10px 0; font-weight: bold; color: #9F1239;">Enlace de la sesión virtual:</p>
-                 <a href="${data.meetingUrl}" style="background-color: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ingresar a la sala</a>
+                 <p style="margin: 0 0 10px 0; font-weight: bold; color: #9F1239;">Enlace de la videollamada (Google Meet):</p>
+                 <a href="${data.meetingUrl}" style="background-color: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ingresar a Google Meet</a>
+                 <p style="margin: 8px 0 0 0; font-size: 12px; color: #718096;"><a href="${data.meetingUrl}" style="color: #718096;">${data.meetingUrl}</a></p>
                </div>`
             : ""
         }
