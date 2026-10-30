@@ -1,3 +1,5 @@
+import nodemailer, { type Transporter } from "nodemailer";
+
 export interface SendEmailOptions {
   to: string;
   subject: string;
@@ -10,12 +12,60 @@ export class EmailService {
   private static from = process.env.EMAIL_FROM || "Consultorio Psicológico <turnos@consultorio.com>";
   private static appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
+  private static smtpTransporter: Transporter | null = null;
+
+  private static getSmtpTransporter(): Transporter {
+    if (!this.smtpTransporter) {
+      const isGmail = this.driver === "gmail" || process.env.SMTP_HOST === "smtp.gmail.com";
+
+      if (isGmail) {
+        this.smtpTransporter = nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user: process.env.SMTP_USER || process.env.GMAIL_USER,
+            pass: process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD,
+          },
+        });
+      } else {
+        this.smtpTransporter = nodemailer.createTransport({
+          host: process.env.SMTP_HOST || "smtp.mailtrap.io",
+          port: Number(process.env.SMTP_PORT) || 587,
+          secure: process.env.SMTP_PORT === "465",
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        });
+      }
+    }
+    return this.smtpTransporter;
+  }
+
   /**
    * Envía un correo electrónico transaccional.
-   * Si no hay credenciales configuradas, utiliza el driver de consola seguro.
+   * Soporta: "gmail", "smtp", "resend" o "console".
    */
   static async send(options: SendEmailOptions): Promise<{ success: boolean; id?: string }> {
-    // 1. Integración con Resend si la clave está provista
+    // 1. Integración con Gmail / SMTP mediante Nodemailer
+    if (this.driver === "gmail" || this.driver === "smtp") {
+      try {
+        const transporter = this.getSmtpTransporter();
+        const info = await transporter.sendMail({
+          from: this.from,
+          to: options.to,
+          subject: options.subject,
+          html: options.html,
+          text: options.text,
+        });
+
+        return { success: true, id: info.messageId };
+      } catch (err) {
+        console.error(`Error al enviar email mediante ${this.driver}:`, err);
+        return { success: false };
+      }
+    }
+
+    // 2. Integración con Resend si la clave está provista
     if (this.driver === "resend" && process.env.RESEND_API_KEY) {
       try {
         const resp = await fetch("https://api.resend.com/emails", {
@@ -47,7 +97,7 @@ export class EmailService {
       }
     }
 
-    // 2. Driver de consola (entorno de pruebas / desarrollo / sin credenciales externas)
+    // 3. Driver de consola (entorno de pruebas / desarrollo / sin credenciales externas)
     console.log("------------------------------------------------------------");
     console.log(`[EMAIL DISPATCH - ${this.driver.toUpperCase()}]`);
     console.log(`Para: ${options.to}`);
@@ -119,16 +169,26 @@ export class EmailService {
     dateTimeFormatted: string;
     modality: string;
     token: string;
+    meetingUrl?: string | null;
   }) {
     const magicLink = `${this.appUrl}/turno/${data.token}`;
     const subject = `Turno confirmado - Código ${data.publicCode}`;
     const html = `
-      <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px;">
+      <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
         <h2 style="color: #BE123C;">¡Tu turno está confirmado!</h2>
         <p>Hola <strong>${data.patientName}</strong>,</p>
         <p>El pago de tu sesión ha sido aprobado. Te esperamos el día <strong>${data.dateTimeFormatted}</strong> (${data.modality}).</p>
-        <p>Podés consultar las instrucciones de acceso y los detalles en cualquier momento:</p>
-        <p><a href="${magicLink}">Acceder a los detalles de mi turno</a></p>
+        ${
+          data.meetingUrl
+            ? `<div style="background-color: #FFF1F2; border: 1px solid #FECDD3; padding: 16px; border-radius: 6px; margin: 16px 0; text-align: center;">
+                 <p style="margin: 0 0 10px 0; font-weight: bold; color: #9F1239;">Enlace de la sesión virtual:</p>
+                 <a href="${data.meetingUrl}" style="background-color: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Ingresar a la sala</a>
+               </div>`
+            : ""
+        }
+        <p style="text-align: center; margin: 24px 0;">
+          <a href="${magicLink}" style="background-color: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Acceder a los detalles de mi turno</a>
+        </p>
       </div>
     `;
     return this.send({ to: data.to, subject, html });
@@ -147,13 +207,15 @@ export class EmailService {
     const magicLink = `${this.appUrl}/turno/${data.token}`;
     const subject = `Observación sobre tu comprobante - Turno ${data.publicCode}`;
     const html = `
-      <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px;">
+      <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
         <h2 style="color: #C53030;">Comprobante no aprobado</h2>
         <p>Hola <strong>${data.patientName}</strong>,</p>
         <p>No pudimos validar el comprobante adjunto para el turno <strong>${data.publicCode}</strong>.</p>
         <p><strong>Motivo indicado:</strong> ${data.reason}</p>
         <p>Por favor, ingresá en el siguiente enlace para adjuntar un nuevo comprobante o verificar la transferencia:</p>
-        <p><a href="${magicLink}">Revisar y adjuntar nuevo comprobante</a></p>
+        <p style="text-align: center; margin: 24px 0;">
+          <a href="${magicLink}" style="background-color: #E11D48; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">Revisar y adjuntar nuevo comprobante</a>
+        </p>
       </div>
     `;
     return this.send({ to: data.to, subject, html });
@@ -170,7 +232,7 @@ export class EmailService {
   }) {
     const subject = `Turno cancelado - Código ${data.publicCode}`;
     const html = `
-      <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px;">
+      <div style="font-family: Arial, sans-serif; color: #2D3748; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #E2E8F0; border-radius: 8px;">
         <h2 style="color: #4A5568;">Turno cancelado</h2>
         <p>Hola <strong>${data.patientName}</strong>,</p>
         <p>El turno con código <strong>${data.publicCode}</strong> ha sido cancelado.</p>
