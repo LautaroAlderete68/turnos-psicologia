@@ -8,7 +8,6 @@ import {
   Settings,
   LogOut,
   ShieldCheck,
-  User,
 } from "lucide-react";
 import { getAdminSession } from "@/lib/auth";
 
@@ -31,8 +30,12 @@ export default async function AdminDashboardLayout({
         <div>
           {/* Perfil del admin */}
           <div className="flex items-center gap-3 border-b border-warm-200 pb-5">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sage-100 text-sage-800 font-bold">
-              <User className="h-5 w-5" />
+            <div
+              role="img"
+              aria-label="Símbolo de psicología"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sage-100 text-sage-800 font-serif text-2xl font-bold leading-none"
+            >
+              Ψ
             </div>
             <div className="truncate">
               <span className="block font-bold text-gray-900 text-sm truncate">
