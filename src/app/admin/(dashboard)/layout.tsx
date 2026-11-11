@@ -32,10 +32,47 @@ export default async function AdminDashboardLayout({
           <div className="flex items-center gap-3 border-b border-warm-200 pb-5">
             <div
               role="img"
-              aria-label="Símbolo de psicología"
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sage-100 text-sage-800 font-serif text-2xl font-bold leading-none"
+              aria-label="Símbolo de psicología con flores delicadas"
+              className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-sage-100 text-sage-800"
             >
-              Ψ
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 48 48"
+                className="absolute inset-0 h-full w-full"
+                fill="none"
+              >
+                <path
+                  d="M19 41C10 38 7 29 10 18M29 41C38 38 41 29 38 18"
+                  stroke="#7D9275"
+                  strokeWidth="1"
+                  strokeLinecap="round"
+                />
+                <g fill="#A3B49A">
+                  <ellipse cx="10" cy="31" rx="1.5" ry="3.5" transform="rotate(-40 10 31)" />
+                  <ellipse cx="15" cy="36" rx="1.4" ry="3" transform="rotate(35 15 36)" />
+                  <ellipse cx="38" cy="31" rx="1.5" ry="3.5" transform="rotate(40 38 31)" />
+                  <ellipse cx="33" cy="36" rx="1.4" ry="3" transform="rotate(-35 33 36)" />
+                </g>
+                <g fill="#E6BCC7">
+                  <ellipse cx="10" cy="14" rx="1.8" ry="2.6" />
+                  <ellipse cx="7.5" cy="16" rx="2.6" ry="1.8" transform="rotate(30 7.5 16)" />
+                  <ellipse cx="8.5" cy="19" rx="1.8" ry="2.6" transform="rotate(30 8.5 19)" />
+                  <ellipse cx="11.5" cy="19" rx="1.8" ry="2.6" transform="rotate(-30 11.5 19)" />
+                  <ellipse cx="12.5" cy="16" rx="2.6" ry="1.8" transform="rotate(-30 12.5 16)" />
+                </g>
+                <g fill="#EAD5DC">
+                  <ellipse cx="38" cy="14" rx="1.8" ry="2.6" />
+                  <ellipse cx="35.5" cy="16" rx="2.6" ry="1.8" transform="rotate(30 35.5 16)" />
+                  <ellipse cx="36.5" cy="19" rx="1.8" ry="2.6" transform="rotate(30 36.5 19)" />
+                  <ellipse cx="39.5" cy="19" rx="1.8" ry="2.6" transform="rotate(-30 39.5 19)" />
+                  <ellipse cx="40.5" cy="16" rx="2.6" ry="1.8" transform="rotate(-30 40.5 16)" />
+                </g>
+                <g fill="#C3A36A">
+                  <circle cx="10" cy="17" r="1.4" />
+                  <circle cx="38" cy="17" r="1.4" />
+                </g>
+              </svg>
+              <span aria-hidden="true" className="relative font-serif text-3xl font-bold leading-none">Ψ</span>
             </div>
             <div className="truncate">
               <span className="block font-bold text-gray-900 text-sm truncate">
